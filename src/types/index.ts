@@ -33,7 +33,7 @@ export interface TeamMember {
   userId: string;
   role: "ADMIN" | "MEMBER";
   status: "PENDING" | "APPROVED" | "REJECTED";
-  user: {
+  user?: {
     name: string;
     email: string;
   };
@@ -51,4 +51,14 @@ export interface TeamActivity {
   analyzerName: string;
   points: number;
   [key: string]: unknown;
+}
+
+export interface ProjectMember {
+  userId: string;
+  roleId: number;
+  roleName?: string;
+  user: {
+    name: string;
+    email: string;
+  };
 }

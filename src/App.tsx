@@ -21,6 +21,10 @@ import VerifyEmailPage from './pages/onboarding/VerifyEmailPage';
 import RejectedPage from './pages/onboarding/RejectedPage';
 import OnboardingLayout from './components/OnboardingLayout';
 import TeamRequestsPage from './pages/admin/TeamRequestsPage';
+import PermissionsPage from './pages/admin/PermissionsPage';
+import ProjectsPage from './pages/ProjectsPage';
+import NotFoundPage from './pages/errors/NotFoundPage';
+import ForbiddenPage from './pages/errors/ForbiddenPage';
 
 function App() {
     const { loading } = useAuth();
@@ -70,12 +74,16 @@ function App() {
                 <Route path="/calendar"                                 element={<CalendarPage />} />
                 <Route path="/team/:teamId"                             element={<TeamDetailPage />} />
                 <Route path="/admin/team-requests"                      element={<TeamRequestsPage />} />
+                <Route path="/admin/permissions"                        element={<PermissionsPage />} />
+                <Route path="/projects"                                  element={<ProjectsPage />} />
                 <Route path="/projects/:projectId"                      element={<ProjectDetailPage />} />
                 <Route path="/projects/:projectId/devices"              element={<DevicesPage />} />
                 <Route path="/projects/:projectId/tasks/:taskId"        element={<TaskDetailPage />} />
             </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/404" element={<NotFoundPage />} />
+            <Route path="/403" element={<ForbiddenPage />} />
+            <Route path="*" element={<NotFoundPage />} />
         </Routes>
     );
 }

@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import CreateProjectModal from './modals/CreateProjectModal';
 import { useGetProjects, useGetProjectsCountByRole} from '../hooks/useProjects';
+import { useLastMeasurement } from '../hooks/useMeasurement';
+import MeasurementChart from '../components/task/MeasurementChart';
 import {
   KronosLayout,
   KronosPageHeader,
@@ -11,8 +13,6 @@ import {
   KronosButton,
   KronosSensorCard,
   KronosStatCard,
-  KronosTabs,
-  KronosTabContent,
   KronosBadge,
 } from '../components/kronos';
 import {
@@ -28,23 +28,10 @@ import {
   Layers,
   Clock,
   MapPin,
+  Radio,
 } from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from 'recharts';
 import {useGetAllDevices} from "../hooks/useDevices.ts";
-
-const chartData = Array.from({ length: 24 }, (_, i) => ({
-  hour: `${i}:00`,
-  temperature: 20 + Math.random() * 8,
-  humidity: 50 + Math.random() * 30,
-  pressure: 1.0 + Math.random() * 0.05,
-}));
+import { useDashboardStats } from '../hooks/useDashboardStats';
 
 
 const sensors = [
@@ -129,6 +116,7 @@ const DashboardPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<'all' | number>('all');
   const carouselRef = useRef<HTMLDivElement>(null);
   const { data: devices } = useGetAllDevices();
 
@@ -150,6 +138,23 @@ const DashboardPage = () => {
 
   const { data: projects, isLoading, isError, error } = useGetProjects();
   const { data: adminCount = 0 } = useGetProjectsCountByRole('admin');
+  const { data: lastMeasurement, isLoading: lastMeasurementLoading } = useLastMeasurement();
+  const { data: stats } = useDashboardStats();
+
+  const activeChannels = useMemo(() => {
+    if (!lastMeasurement?.data) return [];
+    const active: number[] = [];
+    for (let ch = 1; ch <= 16; ch++) {
+      if (lastMeasurement.data.some(p => p.g[ch - 1] !== 0 || p.b[ch - 1] !== 0)) {
+        active.push(ch);
+      }
+    }
+    return active;
+  }, [lastMeasurement]);
+
+  const visibleChannels = selectedChannel === 'all'
+    ? Array.from({ length: 16 }, (_, i) => i + 1)
+    : [selectedChannel as number];
 
   useEffect(() => {
     const el = carouselRef.current;
@@ -203,38 +208,30 @@ const DashboardPage = () => {
         <KronosSection className="mb-6">
           <KronosGrid columns={4}>
             <KronosStatCard
-                label="Total Sensors"
-                value={totalDevices }
-                trend="up"
-                trendValue="+3"
-                trendLabel="this week"
+                label="Total Devices"
+                value={stats?.totalDevices ?? totalDevices}
+                trend={(stats?.newDevicesThisWeek ?? 0) > 0 ? 'up' : 'stable'}
+                trendValue={`+${stats?.newDevicesThisWeek ?? 0}`}
+                trendLabel="esta semana"
                 icon={Activity}
                 iconColor="primary"
-                sparklineData={[40, 42, 44, 45, 46, 47, 48]}
             />
             <KronosStatCard
                 label="Active Projects"
-                value={adminCount}
-                trend="stable"
-                trendValue="0"
-                trendLabel="change"
+                value={stats?.activeProjects ?? adminCount}
                 icon={Box}
                 iconColor="success"
             />
             <KronosStatCard
                 label="Alerts"
-                value={5}
-                trend="down"
-                trendValue="-2"
-                trendLabel="vs yesterday"
+                value={stats?.pendingAlerts ?? 0}
+                trendLabel="pendientes"
                 icon={AlertTriangle}
                 iconColor="warning"
             />
             <KronosStatCard
                 label="Team Members"
-                value={24}
-                trend="stable"
-                trendValue="0"
+                value={stats?.teamMembers ?? 0}
                 icon={Users}
                 iconColor="success"
             />
@@ -324,45 +321,101 @@ const DashboardPage = () => {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <KronosCard>
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">Sensor Readings</h3>
-                  <p className="text-xs text-muted-foreground">Last 24 hours</p>
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground">Última Medición</h3>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {lastMeasurement
+                      ? [lastMeasurement.projectName, lastMeasurement.taskName].filter(Boolean).join(' · ')
+                      : 'Sin datos'}
+                    {lastMeasurement?.takenAt && (
+                      <span>
+                        {' · '}
+                        {new Date(lastMeasurement.takenAt).toLocaleString('es-PE', {
+                          day: '2-digit', month: 'short',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                  </p>
                 </div>
-                <KronosTabs
-                    tabs={[
-                      { value: 'temp', label: 'Temp' },
-                      { value: 'humidity', label: 'Humidity' },
-                      { value: 'pressure', label: 'Pressure' },
-                    ]}
-                    variant="pills"
-                    className="w-auto"
-                >
-                  <KronosTabContent value="temp"><></></KronosTabContent>
-                  <KronosTabContent value="humidity"><></></KronosTabContent>
-                  <KronosTabContent value="pressure"><></></KronosTabContent>
-                </KronosTabs>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  {/* Filtro de canales */}
+                  {activeChannels.length > 0 && (
+                    activeChannels.length <= 5 ? (
+                      <div className="flex gap-1">
+                        {activeChannels.map(ch => (
+                          <button
+                            key={ch}
+                            onClick={() => setSelectedChannel(ch)}
+                            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                              selectedChannel === ch
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
+                          >
+                            Canal {ch}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setSelectedChannel('all')}
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            selectedChannel === 'all'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          Todos
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedChannel}
+                        onChange={e =>
+                          setSelectedChannel(e.target.value === 'all' ? 'all' : Number(e.target.value))
+                        }
+                        className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="all">Todos los canales</option>
+                        {activeChannels.map(ch => (
+                          <option key={ch} value={ch}>Canal {ch}</option>
+                        ))}
+                      </select>
+                    )
+                  )}
+
+                  {/* Ver todas → */}
+                  {lastMeasurement?.projectId && lastMeasurement?.taskId && (
+                    <button
+                      onClick={() =>
+                        navigate(`/projects/${lastMeasurement.projectId}/tasks/${lastMeasurement.taskId}`)
+                      }
+                      className="flex items-center gap-0.5 rounded-full px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                    >
+                      Ver todas
+                      <ChevronRight className="size-3" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0047FF" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#0047FF" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="hour" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}°`} />
-                    <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '12px' }}
-                        labelStyle={{ color: '#94a3b8' }}
-                        itemStyle={{ color: '#f1f5f9' }}
-                    />
-                    <Area type="monotone" dataKey="temperature" stroke="#0047FF" strokeWidth={2} fill="url(#colorTemp)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+
+              {lastMeasurementLoading ? (
+                <div className="flex h-64 items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
+                </div>
+              ) : !lastMeasurement?.data ? (
+                <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-md bg-muted/20 text-muted-foreground">
+                  <Radio className="size-8 opacity-30" />
+                  <p className="text-sm">Sin mediciones recientes</p>
+                </div>
+              ) : (
+                <MeasurementChart
+                  measurementData={lastMeasurement}
+                  visibleChannels={visibleChannels}
+                  isLoading={false}
+                />
+              )}
             </KronosCard>
 
             <KronosSection title="Critical Sensors" description="Sensors requiring attention">

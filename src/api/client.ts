@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 
 const apiClient = axios.create({
@@ -39,6 +40,31 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor de respuesta: mensajes claros para errores comunes.
+// Dedupe simple para no repetir el mismo toast en ráfaga (retries, refetch).
+let lastToast = { message: '', at: 0 };
+const toastOnce = (message: string) => {
+  const now = Date.now();
+  if (lastToast.message === message && now - lastToast.at < 5000) return;
+  lastToast = { message, at: now };
+  toast.error(message);
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 403) {
+      toastOnce('No tienes permiso para realizar esta acción');
+    } else if (status >= 500) {
+      toastOnce('Error del servidor, intenta de nuevo');
+    }
+
     return Promise.reject(error);
   }
 );

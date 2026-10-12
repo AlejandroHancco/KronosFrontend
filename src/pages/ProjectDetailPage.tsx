@@ -1,7 +1,9 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
+import { AxiosError } from 'axios';
 import { useGetTasks } from '../hooks/useTasks';
-import { useGetProject, useGetProjects } from '../hooks/useProjects';
+import { useGetProject, useGetProjects, useGetProjectMembers, useUpdateProjectMemberRole, useAddProjectMember } from '../hooks/useProjects';
+import { useGetCurrentTeam, useGetTeamMembers } from '../hooks/useTeams';
 import CreateTaskModal from './modals/CreateTaskModal';
 import { useGetProjectDevices } from '../hooks/useTasks';
 
@@ -13,8 +15,16 @@ import {
     KronosBadge,
     KronosSection,
 } from '../components/kronos';
-// FIX 4: Layers añadido al import
-import { ArrowLeft, Plus, Cpu, FolderOpen, Calendar, ChevronRight, ChevronLeft, Layers } from 'lucide-react';
+import { ArrowLeft, Plus, Cpu, FolderOpen, Calendar, ChevronRight, ChevronLeft, Layers, Users } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
+import type { ProjectMember } from '../types';
 
 const statusVariant: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
     completed: 'success',
@@ -30,6 +40,12 @@ const statusLabel: Record<string, string> = {
     cancelled: 'Cancelado',
 };
 
+const PROJECT_ROLES = [
+    { id: 3, label: 'Gestor de Proyecto' },
+    { id: 4, label: 'Operario' },
+    { id: 5, label: 'Visualizador' },
+] as const;
+
 const PAGE_SIZE = 10;
 
 const ProjectDetailPage = () => {
@@ -38,21 +54,32 @@ const ProjectDetailPage = () => {
     const [showAll, setShowAll] = useState(false);
     const [page, setPage] = useState(1);
     const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+    const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+    const [addMemberUserId, setAddMemberUserId] = useState('');
+    const [addMemberRoleId, setAddMemberRoleId] = useState<number>(4);
     const taskCarouselRef = useRef<HTMLDivElement>(null);
     const [showTaskLeftArrow, setShowTaskLeftArrow] = useState(false);
     const [showTaskRightArrow, setShowTaskRightArrow] = useState(false);
 
-    // FIX 1: Cambiado projectId! → id! (projectId no existía como variable)
     const { data: projectDevices } = useGetProjectDevices(id!);
-
-    // FIX 5: Todos los hooks agrupados antes de cualquier early return
     const { data: tasksData, isLoading: tasksLoading, isError: tasksError, error: tasksErrorMsg } = useGetTasks(id!, page);
     const { data: recentData } = useGetTasks(id!, 1, 5);
     const { data: project, isLoading: projectLoading, isError: projectError, error: projectErrorMsg } = useGetProject(id!);
     const { data: allProjects } = useGetProjects();
+    const { data: projectMembers = [], isLoading: projectMembersLoading } = useGetProjectMembers(id!);
+    const { data: currentTeam } = useGetCurrentTeam();
+    const { data: teamMembers = [] } = useGetTeamMembers(currentTeam?.id ?? '');
+    const updateProjectRoleMutation = useUpdateProjectMemberRole();
+    const addProjectMemberMutation = useAddProjectMember();
 
     const analyzers = projectDevices?.filter(d => d.type === 'analyzer') ?? [];
     const muxes = projectDevices?.filter(d => d.type === 'mux') ?? [];
+
+    // Team members not yet in the project
+    const approvedTeamMembers = teamMembers.filter(m => m.status === 'APPROVED');
+    const membersNotInProject = approvedTeamMembers.filter(
+        tm => !projectMembers.some(pm => pm.userId === tm.userId)
+    );
 
     const updateTaskArrows = () => {
         const el = taskCarouselRef.current;
@@ -78,18 +105,27 @@ const ProjectDetailPage = () => {
         return () => observer.disconnect();
     }, [recentData]);
 
-    // Early returns DESPUÉS de todos los hooks
     if (tasksLoading || projectLoading) return (
         <div className="flex h-screen items-center justify-center bg-background">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
         </div>
     );
 
-    if (tasksError || projectError) return (
-        <div className="flex h-screen items-center justify-center bg-background">
-            <p className="text-destructive">Error: {tasksErrorMsg?.message || projectErrorMsg?.message}</p>
-        </div>
-    );
+    if (tasksError || projectError) {
+        const err = projectErrorMsg ?? tasksErrorMsg;
+        const status = err instanceof AxiosError ? err.response?.status : undefined;
+        if (status === 404) return <Navigate to="/404" replace />;
+        if (status === 403) return <Navigate to="/403" replace />;
+        return (
+            <div className="flex h-screen items-center justify-center bg-background">
+                <p className="text-destructive">
+                    {status && status >= 500
+                        ? 'Error del servidor, intenta de nuevo'
+                        : `Error: ${err?.message}`}
+                </p>
+            </div>
+        );
+    }
 
     const top5Tasks = recentData?.items ?? [];
     const paginatedTasks = tasksData?.items ?? [];
@@ -105,7 +141,23 @@ const ProjectDetailPage = () => {
         });
     };
 
+    const handleChangeProjectRole = async (userId: string, roleId: number) => {
+        await updateProjectRoleMutation.mutateAsync({ projectId: id!, userId, roleId });
+    };
+
+    const handleAddMember = async () => {
+        if (!addMemberUserId) return;
+        await addProjectMemberMutation.mutateAsync({ projectId: id!, userId: addMemberUserId, roleId: addMemberRoleId });
+        setShowAddMemberModal(false);
+        setAddMemberUserId('');
+        setAddMemberRoleId(4);
+    };
+
+    const getRoleLabel = (roleId: number) =>
+        PROJECT_ROLES.find(r => r.id === roleId)?.label ?? `Rol ${roleId}`;
+
     return (
+        <>
         <KronosLayout title={project?.name ?? 'Proyecto'} subtitle="Detalle del Proyecto">
             <KronosPageHeader
                 title={project?.name ?? 'Proyecto'}
@@ -210,10 +262,9 @@ const ProjectDetailPage = () => {
                         </div>
                     </KronosSection>
 
-                    {/* FIX 2: Sección Dispositivos movida dentro del return JSX */}
+                    {/* Dispositivos */}
                     <KronosSection title="Dispositivos" description="Dispositivos asignados al proyecto">
                         <div className="grid grid-cols-2 gap-4">
-
                             {/* Analizadores */}
                             <div className="rounded-lg border border-border bg-card p-4">
                                 <div className="flex items-center justify-between mb-3">
@@ -227,20 +278,15 @@ const ProjectDetailPage = () => {
                                         <Cpu className="size-3.5 text-primary" />
                                     </div>
                                 </div>
-
                                 {analyzers.length > 0 ? (
                                     <div className="space-y-2">
-                                        {/* FIX 3: Eliminada referencia a `task` — "isActive" ahora
-                                            depende solo del device. Adapta esta lógica según tu
-                                            modelo de datos real (ej. device.isActive, device.status, etc.) */}
                                         {analyzers.map((device) => {
-                                            const isActive = device.status === 'online';                                            return (
+                                            const isActive = device.status === 'online';
+                                            return (
                                                 <div
                                                     key={device.id}
                                                     className={`flex items-center justify-between rounded-md px-3 py-2 border transition-colors ${
-                                                        isActive
-                                                            ? 'border-primary/40 bg-primary/5'
-                                                            : 'border-border bg-muted/20'
+                                                        isActive ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/20'
                                                     }`}
                                                 >
                                                     <div className="flex items-center gap-2.5">
@@ -277,17 +323,15 @@ const ProjectDetailPage = () => {
                                         <Layers className="size-3.5 text-primary" />
                                     </div>
                                 </div>
-
                                 {muxes.length > 0 ? (
                                     <div className="space-y-2">
                                         {muxes.map((device) => {
-                                            const isActive = device.status === 'online';                                            return (
+                                            const isActive = device.status === 'online';
+                                            return (
                                                 <div
                                                     key={device.id}
                                                     className={`flex items-center justify-between rounded-md px-3 py-2 border transition-colors ${
-                                                        isActive
-                                                            ? 'border-primary/40 bg-primary/5'
-                                                            : 'border-border bg-muted/20'
+                                                        isActive ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/20'
                                                     }`}
                                                 >
                                                     <div className="flex items-center gap-2.5">
@@ -313,7 +357,7 @@ const ProjectDetailPage = () => {
                         </div>
                     </KronosSection>
 
-                    {/* ── Todas las tareas (tabla) ── */}
+                    {/* ── Todas las tareas ── */}
                     <KronosSection
                         title="Todas las Tareas"
                         description={`${total} tareas en total`}
@@ -359,10 +403,10 @@ const ProjectDetailPage = () => {
                                                         </KronosBadge>
                                                     </td>
                                                     <td className="px-4 py-3 text-muted-foreground">
-                                                            <span className="flex items-center gap-1.5">
-                                                                <Calendar className="size-3.5" />
-                                                                {formatDate(task.createdAt)}
-                                                            </span>
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Calendar className="size-3.5" />
+                                                            {formatDate(task.createdAt)}
+                                                        </span>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -448,8 +492,9 @@ const ProjectDetailPage = () => {
                     </KronosSection>
                 </div>
 
-                {/* Right — Otros proyectos (1/3) */}
+                {/* Right (1/3) */}
                 <div className="space-y-6">
+                    {/* Otros proyectos */}
                     <KronosCard>
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-sm font-semibold text-foreground">Otros Proyectos</h3>
@@ -487,6 +532,65 @@ const ProjectDetailPage = () => {
                             <p className="text-xs text-muted-foreground">No hay otros proyectos.</p>
                         )}
                     </KronosCard>
+
+                    {/* ── Miembros del proyecto ── */}
+                    <KronosCard>
+                        <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Users className="size-4 text-primary" />
+                                <h3 className="text-sm font-semibold text-foreground">Miembros</h3>
+                            </div>
+                            <KronosButton
+                                variant="outline"
+                                size="sm"
+                                leftIcon={<Plus className="size-3" />}
+                                onClick={() => {
+                                    setAddMemberUserId(membersNotInProject[0]?.userId ?? '');
+                                    setShowAddMemberModal(true);
+                                }}
+                                disabled={membersNotInProject.length === 0}
+                            >
+                                Añadir
+                            </KronosButton>
+                        </div>
+
+                        {projectMembersLoading ? (
+                            <p className="text-xs text-muted-foreground">Cargando...</p>
+                        ) : projectMembers.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No hay miembros en este proyecto.</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {projectMembers.map((member: ProjectMember) => (
+                                    <div key={member.userId} className="flex items-center justify-between gap-2 rounded-md border border-border/50 px-3 py-2">
+                                        <div className="min-w-0">
+                                            <p className="truncate text-xs font-medium text-foreground">
+                                                {member.user?.name ?? (member as any).name ?? member.userId}
+                                            </p>
+                                            <p className="truncate text-[10px] text-muted-foreground">
+                                                {member.user?.email ?? (member as any).email ?? ''}
+                                            </p>
+                                        </div>
+                                        <select
+                                            value={member.roleId}
+                                            onChange={(e) => handleChangeProjectRole(member.userId, Number(e.target.value))}
+                                            disabled={updateProjectRoleMutation.isPending}
+                                            className="shrink-0 rounded-md border border-border bg-background px-2 py-1 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                                        >
+                                            {PROJECT_ROLES.map(role => (
+                                                <option key={role.id} value={role.id}>{role.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {projectMembers.length > 0 && (
+                            <p className="mt-3 text-[10px] text-muted-foreground/60">
+                                {projectMembers.length} miembro{projectMembers.length !== 1 ? 's' : ''} en el proyecto
+                            </p>
+                        )}
+                    </KronosCard>
                 </div>
             </div>
 
@@ -497,6 +601,70 @@ const ProjectDetailPage = () => {
                 />
             )}
         </KronosLayout>
+
+        {/* ── Modal: Añadir miembro al proyecto ── */}
+        <Dialog open={showAddMemberModal} onOpenChange={setShowAddMemberModal}>
+            <DialogContent showCloseButton={false}>
+                <DialogHeader>
+                    <DialogTitle>Añadir miembro al proyecto</DialogTitle>
+                    <DialogDescription>
+                        Selecciona un miembro del equipo y asígnale un rol en este proyecto.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-2">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">Miembro</label>
+                        {membersNotInProject.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Todos los miembros del equipo ya están en este proyecto.</p>
+                        ) : (
+                            <select
+                                value={addMemberUserId}
+                                onChange={(e) => setAddMemberUserId(e.target.value)}
+                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                                {membersNotInProject.map(tm => (
+                                    <option key={tm.userId} value={tm.userId}>
+                                        {tm.user?.name ?? (tm as any).name ?? tm.userId} — {tm.user?.email ?? (tm as any).email ?? ''}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">Rol en el proyecto</label>
+                        <select
+                            value={addMemberRoleId}
+                            onChange={(e) => setAddMemberRoleId(Number(e.target.value))}
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                            {PROJECT_ROLES.map(role => (
+                                <option key={role.id} value={role.id}>{role.label}</option>
+                            ))}
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">
+                            Rol inicial: {getRoleLabel(addMemberRoleId)}
+                        </p>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <KronosButton variant="outline" onClick={() => setShowAddMemberModal(false)}>
+                        Cancelar
+                    </KronosButton>
+                    <KronosButton
+                        variant="primary"
+                        onClick={handleAddMember}
+                        disabled={!addMemberUserId || membersNotInProject.length === 0}
+                        loading={addProjectMemberMutation.isPending}
+                    >
+                        Añadir miembro
+                    </KronosButton>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 };
 

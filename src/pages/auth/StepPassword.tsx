@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Lock, ArrowLeft, Loader2, Key, Mail } from 'lucide-react';
 import { KronosButton, KronosInput } from '../../components/kronos';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,7 +14,7 @@ const StepPassword: React.FC<StepPasswordProps> = ({ email, onBack }) => {
   const [password, setPassword] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
-  const { login, loading: authLoading, error: authError } = useAuth();
+  const { login, error: authError } = useAuth();
   const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -23,15 +23,24 @@ const StepPassword: React.FC<StepPasswordProps> = ({ email, onBack }) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    if (!password || authLoading || localLoading) return;
+    if (!password || localLoading) return;
 
-    console.log('Intentando login para:', email);
-    const success = await login(email, password);
-    console.log('Resultado del login:', success);
-    
-    if (success) {
-      console.log('Login exitoso, redirigiendo a /dashboard');
-      navigate('/dashboard');
+    setLocalError(null);
+    setLocalLoading(true);
+    try {
+      const success = await login(email, password);
+      if (success) {
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 401) {
+        setLocalError('ContraseÃ±a incorrecta. IntÃ©ntalo de nuevo.');
+      } else {
+        setLocalError('Error al iniciar sesiÃ³n. IntÃ©ntalo mÃ¡s tarde.');
+      }
+    } finally {
+      setLocalLoading(false);
     }
   };
 
@@ -62,7 +71,7 @@ const StepPassword: React.FC<StepPasswordProps> = ({ email, onBack }) => {
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Te enviamos un link</h3>
           <p className="text-sm text-muted-foreground">
-            Revisa tu correo <span className="text-foreground font-medium">{email}</span> para iniciar sesión sin contraseña.
+            Revisa tu correo <span className="text-foreground font-medium">{email}</span> para iniciar sesiÃ³n sin contraseÃ±a.
           </p>
         </div>
         <KronosButton variant="outline" onClick={onBack} className="w-full">
@@ -82,15 +91,15 @@ const StepPassword: React.FC<StepPasswordProps> = ({ email, onBack }) => {
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Contraseña
+            ContraseÃ±a
           </label>
           <KronosInput
             type="password"
-            placeholder="••••••••"
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            disabled={authLoading || localLoading}
-            icon={<Lock className="text-muted-foreground" size={16} />}
+            disabled={localLoading}
+            leftIcon={<Lock className="text-muted-foreground" size={16} />}
             required
             autoFocus
           />
@@ -105,16 +114,16 @@ const StepPassword: React.FC<StepPasswordProps> = ({ email, onBack }) => {
         <KronosButton
           type="button"
           className="w-full h-11"
-          disabled={authLoading || localLoading || !password}
+          disabled={localLoading || !password}
           onClick={handleLogin}
         >
-          {authLoading ? (
+          {localLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Iniciando sesión...
+              Iniciando sesiÃ³n...
             </>
           ) : (
-            'Iniciar sesión'
+            'Iniciar sesiÃ³n'
           )}
         </KronosButton>
 
@@ -122,11 +131,11 @@ const StepPassword: React.FC<StepPasswordProps> = ({ email, onBack }) => {
           <button
             type="button"
             onClick={handleSendOtp}
-            disabled={authLoading || localLoading}
+            disabled={localLoading}
             className="text-sm text-primary hover:underline flex items-center justify-center gap-2"
           >
             <Key size={14} />
-            Entrar sin contraseña
+            Entrar sin contraseÃ±a
           </button>
 
           <button

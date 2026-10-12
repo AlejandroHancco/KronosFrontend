@@ -80,8 +80,8 @@ const TeamRequestsPage = () => {
             <tbody>
               {requests.map((request: TeamMember) => (
                 <tr key={request.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition">
-                  <td className="px-6 py-4 text-sm">{request.user.name}</td>
-                  <td className="px-6 py-4 text-sm">{request.user.email}</td>
+                  <td className="px-6 py-4 text-sm">{request.user?.name ?? '—'}</td>
+                  <td className="px-6 py-4 text-sm">{request.user?.email ?? '—'}</td>
                   <td className="px-6 py-4 text-sm text-slate-400">{formatDate(request.createdAt as string | undefined)}</td>
                   <td className="px-6 py-4 text-sm flex space-x-2">
                     <button

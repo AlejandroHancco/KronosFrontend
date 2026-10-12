@@ -1,15 +1,44 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Breadcrumb from '../../components/Breadcrumb';
 import { useGetMyTeamStatus } from '../../hooks/useTeams';
 import { useAuth } from '../../hooks/useAuth';
+import { useSocket } from '../../hooks/useSocket';
 
 const PendingApprovalPage = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const socket = useSocket();
 
+  // Polling como fallback por si el WebSocket falla
   const { data, isLoading } = useGetMyTeamStatus();
+
+  // Notificación en tiempo real de aprobación / rechazo
+  useEffect(() => {
+    const handleApproved = () => {
+      toast.success('¡Fuiste aprobado! Bienvenido al equipo.');
+      navigate('/dashboard');
+    };
+
+    const handleRejected = (payload?: { attemptsLeft?: number }) => {
+      if (payload?.attemptsLeft !== undefined) {
+        toast.error(`Solicitud rechazada. Te quedan ${payload.attemptsLeft} intentos.`);
+      } else {
+        toast.error('Tu solicitud fue rechazada.');
+      }
+      navigate('/join-team');
+    };
+
+    socket.on('team:approved', handleApproved);
+    socket.on('team:rejected', handleRejected);
+
+    return () => {
+      socket.off('team:approved', handleApproved);
+      socket.off('team:rejected', handleRejected);
+    };
+  }, [socket, navigate]);
 
   useEffect(() => {
     if (!data) return;
@@ -48,4 +77,3 @@ const PendingApprovalPage = () => {
 };
 
 export default PendingApprovalPage;
-

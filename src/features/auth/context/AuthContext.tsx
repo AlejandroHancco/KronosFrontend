@@ -1,5 +1,5 @@
 import type React from 'react';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import { AxiosError } from 'axios';
 import { supabase } from '../../../lib/supabase';
 import type { User, AuthContextType } from '../types';
@@ -48,7 +48,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const response = await apiClient.get('/auth/me');
         console.log('[Auth] GET /auth/me success:', response.data);
-        setUser(response.data);
+        const meData = response.data;
+        setUser({
+          id: meData.uuid || meData.id,
+          email: meData.email,
+          name: meData.name,
+          lastName: meData.lastName,
+          role: meData.role,
+          permissions: meData.permissions || [],
+          provider: 'jwt',
+        });
       } catch (err) {
         console.log('[Auth] GET /auth/me failed:', err);
         // Si falla /auth/me, podría ser porque es un usuario de Supabase y el backend no lo conoce
@@ -126,21 +135,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('[Auth] login() called with:', email);
-    setLoading(true);
-    setError(null);
     try {
-      // Step 1: Login and get token
       const response = await apiClient.post('/auth/login', { email, password });
       const { access_token } = response.data;
-      console.log('[Auth] login response received');
-      console.log('[Auth] Saving access_token to localStorage');
       localStorage.setItem('token', access_token);
 
-      // Step 2: Fetch user data from /auth/me
-      console.log('[Auth] Calling GET /auth/me to fetch user data');
       const userResponse = await apiClient.get('/auth/me');
       console.log('[Auth] GET /auth/me success:', userResponse.data);
-      
       const userData = userResponse.data;
       setUser({
         id: userData.uuid || userData.id,
@@ -148,21 +149,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: userData.name,
         lastName: userData.lastName,
         role: userData.role,
+        permissions: userData.permissions || [],
         provider: 'jwt',
       });
-      setLoading(false);
-      
-      console.log('[Auth] login() returning true');
       return true;
     } catch (err) {
       console.log('[Auth] login error:', err);
-      const axiosError = err as AxiosError<ApiErrorResponse>;
-      console.log("Datos del error desde el server:", axiosError.response?.data);
-      setError(getErrorMessage(axiosError.response?.data) || 'Error en login');
-      return false;
-    }
-    finally {
-      setLoading(false);
+      throw err;
     }
   };
 
@@ -210,6 +203,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: userData.name,
         lastName: userData.lastName,
         role: userData.role,
+        permissions: userData.permissions || [],
         provider: 'jwt',
       });
       setLoading(false);

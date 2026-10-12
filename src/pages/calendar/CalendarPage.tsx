@@ -43,7 +43,7 @@ const CalendarPage = () => {
     const days = useMemo(() => Array.from({ length: 7 }, (_item, i) => addDays(weekStart, i)), [weekStart]);
 
     const { data: projects = [] } = useGetProjects();
-    const { data: jobs = [], isLoading } = useGetScheduledJobs({
+    const { data: jobs = [] } = useGetScheduledJobs({
         projectId: projectFilter === 'all' ? undefined : projectFilter,
         from: weekStart.toISOString(),
         to: weekEnd.toISOString(),

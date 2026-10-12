@@ -52,6 +52,13 @@ export interface MeasureResponse {
   data: MeasurementPoint[];
 }
 
+export interface LatestMeasurement extends MeasurementDetail {
+  projectName?: string;
+  taskName?: string;
+  taskId?: number;
+  projectId?: string;
+}
+
 // WebSocket Events
 export interface ProgressEvent {
   jobId: string;

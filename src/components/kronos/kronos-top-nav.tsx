@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import { cn } from "../../lib/utils"
 import {
   Search,
-  Bell,
   Settings,
   User,
   LogOut,
@@ -11,6 +10,7 @@ import {
   HelpCircle,
   ChevronDown,
 } from "lucide-react"
+import NotificationPanel from "../notifications/NotificationPanel"
 import { Button } from "../ui/button.tsx"
 import {
   DropdownMenu,
@@ -83,47 +83,7 @@ export function KronosTopNav({ title, subtitle, className }: KronosTopNavProps) 
           </Button>
 
           {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="relative">
-                <Bell className="size-4" />
-                <span className="absolute right-1 top-1 size-2 rounded-full bg-primary" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider">Notifications</span>
-                <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:text-primary/80">
-                  Mark all read
-                </Button>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-64 overflow-y-auto">
-                <NotificationItem
-                    title="Sensor SN-0042 Alert"
-                    description="Temperature exceeded threshold"
-                    time="2 min ago"
-                    type="warning"
-                />
-                <NotificationItem
-                    title="New Report Generated"
-                    description="Weekly analysis complete"
-                    time="1 hour ago"
-                    type="info"
-                />
-                <NotificationItem
-                    title="System Update"
-                    description="v2.4.1 deployed successfully"
-                    time="3 hours ago"
-                    type="success"
-                />
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-xs text-primary">
-                View all notifications
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NotificationPanel />
 
           {/* Help */}
           <Button variant="ghost" size="icon-sm">
@@ -175,34 +135,5 @@ export function KronosTopNav({ title, subtitle, className }: KronosTopNavProps) 
           </DropdownMenu>
         </div>
       </header>
-  )
-}
-
-interface NotificationItemProps {
-  title: string
-  description: string
-  time: string
-  type: "info" | "warning" | "success" | "error"
-}
-
-function NotificationItem({ title, description, time, type }: NotificationItemProps) {
-  const typeColors = {
-    info: "bg-blue-500",
-    warning: "bg-yellow-500",
-    success: "bg-green-500",
-    error: "bg-red-500",
-  }
-
-  return (
-      <DropdownMenuItem className="flex cursor-pointer flex-col items-start gap-1 p-3">
-        <div className="flex w-full items-start gap-2">
-          <div className={cn("mt-1.5 size-2 shrink-0 rounded-full", typeColors[type])} />
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">{title}</p>
-            <p className="text-xs text-muted-foreground">{description}</p>
-          </div>
-        </div>
-        <span className="ml-4 text-[10px] text-muted-foreground">{time}</span>
-      </DropdownMenuItem>
   )
 }

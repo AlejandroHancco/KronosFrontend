@@ -21,7 +21,9 @@ export interface SweepFormData {
 
 interface SweepConfigCardProps {
     control: Control<SweepFormData>;
-    onSubmit: (range: FrequencyRange) => void;
+    onSubmit: (ranges: FrequencyRange[]) => void;
+    onSave: (ranges: FrequencyRange[]) => void;
+    isSaving?: boolean;
     isMeasuring: boolean;
     measureData: MeasureResponse | undefined;
     measureError: Error | null;
@@ -71,6 +73,8 @@ const NumberInput = ({ field, min, max }: { field: SimpleField; min?: number; ma
 const SweepConfigCard = ({
                              control,
                              onSubmit,
+                             onSave,
+                             isSaving = false,
                              isMeasuring,
                              measureData,
                              measureError,
@@ -126,8 +130,13 @@ const SweepConfigCard = ({
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const activeRange = getValues(`ranges.${safeIndex}`) as FrequencyRange;
-        onSubmit(activeRange);
+        const allRanges = getValues('ranges') as FrequencyRange[];
+        onSubmit(allRanges);
+    };
+
+    const handleSave = () => {
+        const allRanges = getValues('ranges') as FrequencyRange[];
+        onSave(allRanges);
     };
 
     const handleRemove = (i: number) => {
@@ -260,6 +269,8 @@ const SweepConfigCard = ({
                             variant="outline"
                             size="sm"
                             leftIcon={<Save className="size-3.5" />}
+                            onClick={handleSave}
+                            loading={isSaving}
                         >
                             Guardar
                         </KronosButton>

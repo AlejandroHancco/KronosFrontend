@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import './styles/globals.css'
 import App from './App.tsx'
 import { AuthProvider } from './features/auth/context/AuthContext.tsx'
+import { Toaster } from './components/ui/sonner.tsx'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <App />
+          <Toaster richColors position="top-right" />
         </AuthProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

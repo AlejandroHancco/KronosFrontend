@@ -2,6 +2,9 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useLocation } from "react-router-dom"
 import { useGetCurrentTeam } from "../../hooks/useTeams"
+import { useAuth } from "../../hooks/useAuth"
+import { useHasPermission } from "../../hooks/useHasPermission"
+import { useNotifications } from "../../hooks/useNotifications"
 import { cn } from "../../lib/utils"
 import {
   LayoutDashboard,
@@ -15,10 +18,12 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react"
 import { Button } from "../ui/button.tsx"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip.tsx"
+import { Avatar, AvatarFallback } from "../ui/avatar.tsx"
 
 interface NavItem {
   title: string
@@ -42,6 +47,9 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
   const { pathname } = useLocation()
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
   const { data: currentTeam } = useGetCurrentTeam()
+  const { user } = useAuth()
+  const canEditPermissions = useHasPermission('permission:edit')
+  const { unreadCount } = useNotifications()
 
   const handleToggle = () => {
     const newState = !isCollapsed
@@ -49,7 +57,20 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
     onCollapsedChange?.(newState)
   }
 
+  const initials = user
+    ? `${user.name?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+    : "U"
+
   // Build navigation groups with dynamic team href
+  const systemItems: NavItem[] = [
+    { title: "Settings", href: "/settings", icon: Settings },
+    { title: "Help", href: "/help", icon: HelpCircle },
+  ]
+
+  if (canEditPermissions) {
+    systemItems.unshift({ title: "Permisos", href: "/admin/permissions", icon: ShieldCheck })
+  }
+
   const navigationGroups: NavGroup[] = [
     {
       items: [
@@ -69,15 +90,17 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
           icon: Users,
           disabled: !currentTeam?.id,
         },
-        { title: "Notifications", href: "/notifications", icon: Bell, badge: "3" },
+        {
+          title: "Notifications",
+          href: "/notifications",
+          icon: Bell,
+          badge: unreadCount > 0 ? String(unreadCount > 9 ? '9+' : unreadCount) : undefined,
+        },
       ],
     },
     {
       title: "SYSTEM",
-      items: [
-        { title: "Settings", href: "/settings", icon: Settings },
-        { title: "Help", href: "/help", icon: HelpCircle },
-      ],
+      items: systemItems,
     },
   ]
 
@@ -149,7 +172,7 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
                  const button = (
                    <Link
                      key={item.href}
-                     to={item.href}
+                     to={item.href!}
                      className={cn(
                        "group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
                        isActive
@@ -205,6 +228,30 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
              </div>
            ))}
          </nav>
+
+        {/* User Info */}
+        {user && (
+          <div className={cn(
+            "border-t border-border px-3 py-2.5",
+            isCollapsed ? "flex justify-center" : "flex items-center gap-2.5"
+          )}>
+            <Avatar className="size-7 shrink-0">
+              <AvatarFallback className="bg-primary/20 text-[10px] font-semibold text-primary">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-foreground">
+                  {user.name} {user.lastName}
+                </p>
+                {user.role && (
+                  <p className="truncate text-[10px] text-muted-foreground">{user.role}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Collapse Toggle */}
         <div className="border-t border-border p-3">

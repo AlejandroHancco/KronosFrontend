@@ -6,6 +6,7 @@ import type {
   MeasureResponse,
   MeasurementSummary,
   MeasurementDetail,
+  LatestMeasurement,
 } from '../types/measurement.types';
 
 export const useGetTask = (taskId: number) => {
@@ -71,5 +72,16 @@ export const useGetMeasurementDetail = (id: number | null) => {
       return response.data;
     },
     enabled: id !== null,
+  });
+};
+
+export const useLastMeasurement = () => {
+  return useQuery<LatestMeasurement>({
+    queryKey: ['last-measurement'],
+    queryFn: async () => {
+      const response = await apiClient.get('/measurements/latest');
+      return response.data;
+    },
+    refetchInterval: 30000,
   });
 };
