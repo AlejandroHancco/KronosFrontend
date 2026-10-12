@@ -16,6 +16,8 @@ export interface AuthContextType {
   register: (email: string, name: string, lastName: string, password: string) => Promise<boolean>;
   logout: () => void;
   signInWithGoogle: () => Promise<void>;
+  /** Reemite el JWT con una expiración fresca. Devuelve true si funcionó. */
+  refreshToken: () => Promise<boolean>;
   loading: boolean;
   error: string | null;
 }

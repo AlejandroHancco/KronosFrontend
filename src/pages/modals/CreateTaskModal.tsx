@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { AxiosError } from 'axios';
 import { useCreateTask, useGetProjectDevices } from '../../hooks/useTasks';
 import { createTaskPreference } from '../../api/tasks.api';
 import type { CreateTaskPreferenceDto } from '../../types/measurement.types';
+import { getErrorMessage, type ApiErrorResponse } from '../../types/api';
 import {
   KronosCard,
   KronosButton,
@@ -75,6 +77,16 @@ const CreateTaskModal = ({ projectId, onClose, onSuccess }: Props) => {
   const handleSavePreference = async () => {
     const data = getValues();
     if (!createdTaskId) return;
+
+    if (!data.analyzerDeviceId || !data.muxDeviceId) {
+      setPreferenceError('Debes seleccionar un analizador y un MUX.');
+      return;
+    }
+    if (!data.startFreq || !data.stopFreq || data.startFreq >= data.stopFreq) {
+      setPreferenceError('Start Freq debe ser menor que Stop Freq.');
+      return;
+    }
+
     try {
       setPreferenceError(null);
       setIsCreatingPreference(true);
@@ -82,17 +94,21 @@ const CreateTaskModal = ({ projectId, onClose, onSuccess }: Props) => {
         name: data.preferenceName,
         analyzerDeviceId: data.analyzerDeviceId,
         muxDeviceId: data.muxDeviceId,
-        startFreq: data.startFreq,
-        stopFreq: data.stopFreq,
-        points: data.points ?? 801,
-        sweepType: data.sweepType ?? 'LOG',
+        ranges: [{
+          order: 1,
+          startFreq: data.startFreq,
+          stopFreq: data.stopFreq,
+          points: data.points ?? 801,
+          sweepType: data.sweepType ?? 'LOG',
+        }],
       };
       await createTaskPreference(createdTaskId, payload);
       onSuccess?.(createdTaskId);
       navigate(`/projects/${projectId}/tasks/${createdTaskId}`);
       onClose();
     } catch (e) {
-      setPreferenceError(e instanceof Error ? e.message : 'Error desconocido');
+      const message = getErrorMessage((e as AxiosError<ApiErrorResponse>).response?.data);
+      setPreferenceError(message);
     } finally {
       setIsCreatingPreference(false);
     }
@@ -287,7 +303,7 @@ const CreateTaskModal = ({ projectId, onClose, onSuccess }: Props) => {
 
                   {preferenceError && (
                       <p className="text-xs text-destructive">
-                        ⚠️ La tarea fue creada pero hubo un error al guardar las preferencias. Puedes configurarlas después.
+                        ⚠️ {preferenceError}
                       </p>
                   )}
 

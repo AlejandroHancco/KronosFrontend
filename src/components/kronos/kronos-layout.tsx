@@ -11,8 +11,31 @@ interface KronosLayoutProps {
   className?: string
 }
 
+const SIDEBAR_COLLAPSED_KEY = "kronos-sidebar-collapsed"
+
+function readStoredCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true"
+  } catch {
+    return false
+  }
+}
+
 export function KronosLayout({ children, title, subtitle, className }: KronosLayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Cada página monta su propio KronosLayout (no hay un layout compartido a nivel de
+  // router), así que el estado de colapso debe persistir en localStorage — si no,
+  // cada navegación (ej. clic en un ítem del sidebar) remonta este componente y el
+  // sidebar vuelve a expandirse.
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState(readStoredCollapsed)
+
+  const setSidebarCollapsed = (collapsed: boolean) => {
+    setSidebarCollapsedState(collapsed)
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed))
+    } catch {
+      // localStorage no disponible (modo privado, etc.) — el estado sigue funcionando en memoria
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">

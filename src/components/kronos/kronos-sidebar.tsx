@@ -14,6 +14,7 @@ import {
   Users,
   FileText,
   Bell,
+  History,
   HelpCircle,
   ChevronLeft,
   ChevronRight,
@@ -88,6 +89,11 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
           icon: Bell,
           badge: unreadCount > 0 ? String(unreadCount > 9 ? '9+' : unreadCount) : undefined,
         },
+        {
+          title: "Activity",
+          href: "/activity",
+          icon: History,
+        },
       ],
     },
     {
@@ -105,6 +111,21 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
           isCollapsed ? "w-16" : "w-56"
         )}
       >
+        {/* Toggle flotante sobre el borde derecho — posición fija, no pertenece a
+            ninguna sección del sidebar (patrón VSCode/Notion/Linear) */}
+        <button
+          type="button"
+          onClick={handleToggle}
+          title={isCollapsed ? "Expandir" : "Colapsar"}
+          className="absolute -right-3 top-1/2 z-50 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-foreground"
+        >
+          {isCollapsed ? (
+            <ChevronRight className="size-3.5" />
+          ) : (
+            <ChevronLeft className="size-3.5" />
+          )}
+        </button>
+
         {/* Logo */}
         <div className={cn(
           "flex h-14 items-center border-b border-border px-4",
@@ -220,27 +241,6 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
              </div>
            ))}
          </nav>
-
-        {/* Collapse Toggle */}
-        <div className="border-t border-border p-3">
-          <button
-            type="button"
-            onClick={handleToggle}
-            className={cn(
-              "flex w-full items-center rounded-md py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-              isCollapsed ? "justify-center" : "gap-2 px-1"
-            )}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="size-4" />
-            ) : (
-              <>
-                <ChevronLeft className="size-4" />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-        </div>
 
         {/* User Info */}
         {user && (

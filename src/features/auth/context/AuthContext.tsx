@@ -1,10 +1,17 @@
 import type React from 'react';
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useRef } from 'react';
 import { AxiosError } from 'axios';
+import { toast } from 'sonner';
 import { supabase } from '../../../lib/supabase';
 import type { User, AuthContextType } from '../types';
 import { getErrorMessage, type ApiErrorResponse } from '../../../types/api';
 import apiClient from '../../../api/client';
+import { getJwtExpiry } from '../../../lib/jwt';
+
+// Avisar cuando falten 5 min para que expire el JWT propio (Supabase ya se
+// auto-refresca solo, esto es solo para la sesión local email+password).
+const SESSION_WARNING_MS = 5 * 60 * 1000;
+const SESSION_CHECK_INTERVAL_MS = 30 * 1000;
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -18,6 +25,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Evita re-mostrar el toast de aviso en cada tick del intervalo mientras
+  // el usuario no haya extendido o cerrado sesión.
+  const warnedForExpiryRef = useRef<number | null>(null);
 
   // Validate session on mount
   useEffect(() => {
@@ -133,6 +143,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const response = await apiClient.post('/auth/refresh');
+      const { access_token } = response.data;
+      localStorage.setItem('token', access_token);
+      warnedForExpiryRef.current = null;
+      return true;
+    } catch (err) {
+      console.log('[Auth] refreshToken failed:', err);
+      return false;
+    }
+  };
+
+  // Avisa antes de que expire el JWT propio y ofrece extenderlo con un clic,
+  // en vez de que el usuario se tope con el 401 "en frío".
+  useEffect(() => {
+    if (user?.provider !== 'jwt') return;
+
+    const checkExpiry = () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const expiresAt = getJwtExpiry(token);
+      if (!expiresAt) return;
+
+      const msLeft = expiresAt - Date.now();
+      if (msLeft <= 0 || msLeft > SESSION_WARNING_MS) return;
+      if (warnedForExpiryRef.current === expiresAt) return; // ya avisado para este token
+
+      warnedForExpiryRef.current = expiresAt;
+      toast('Tu sesión está por expirar', {
+        description: 'Se cerrará en unos minutos si no la extiendes.',
+        duration: Infinity,
+        action: {
+          label: 'Extender sesión',
+          onClick: async () => {
+            const ok = await refreshToken();
+            toast[ok ? 'success' : 'error'](
+              ok ? 'Sesión extendida' : 'No se pudo extender la sesión',
+            );
+          },
+        },
+      });
+    };
+
+    checkExpiry();
+    const interval = setInterval(checkExpiry, SESSION_CHECK_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [user?.provider]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('[Auth] login() called with:', email);
@@ -253,6 +312,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     signInWithGoogle,
+    refreshToken,
     loading,
     error,
   };

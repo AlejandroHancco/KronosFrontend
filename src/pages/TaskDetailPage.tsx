@@ -16,6 +16,7 @@ import SweepConfigCard, { type FrequencyRange, type SweepFormData } from '../com
 import MeasurementChart from '../components/task/MeasurementChart';
 import ChannelSelector from '../components/task/ChannelSelector';
 import MeasurementHistory from '../components/task/MeasurementHistory';
+import { getErrorMessage, type ApiErrorResponse } from '../types/api';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useMeasurementSocket } from '../hooks/useMeasurementSocket';
 import { useSocket } from '../hooks/useSocket';
@@ -143,28 +144,51 @@ const TaskDetailPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [taskIdNum, appSocket, queryClient]);
 
+    /** Valida los rangos antes de medir/guardar. Devuelve el mensaje de error o null si todo bien. */
+    const validateRanges = (ranges: FrequencyRange[]): string | null => {
+        for (let i = 0; i < ranges.length; i++) {
+            const r = ranges[i];
+            const label = ranges.length > 1 ? `Rango ${i + 1}: ` : '';
+            if (!r.startFreq || r.startFreq <= 0) return `${label}Start Freq debe ser mayor que 0`;
+            if (!r.stopFreq || r.stopFreq <= 0) return `${label}Stop Freq debe ser mayor que 0`;
+            if (r.startFreq >= r.stopFreq) return `${label}Start Freq debe ser menor que Stop Freq`;
+        }
+        return null;
+    };
+
     const handleSweepSubmit = (ranges: FrequencyRange[]) => {
         if (selectedChannels.length === 0) {
-            alert('Debes seleccionar al menos un canal para realizar la medición');
+            toast.error('Debes seleccionar al menos un canal para realizar la medición');
             return;
         }
-        const first = ranges[0];
-        if (!first) return;
+        if (!hasDevicesAssigned) {
+            toast.error('Esta tarea no tiene un analizador y un MUX asignados. Configúralos antes de medir.');
+            return;
+        }
+        const rangeError = validateRanges(ranges);
+        if (rangeError) {
+            toast.error(rangeError);
+            return;
+        }
+
         lastRangesRef.current = ranges;
         const newJobId = `${taskIdNum}-${Date.now()}`;
         setJobId(newJobId);
         setJobStatus('queued');
         measure.mutate({
-            startFreq: first.startFreq,
-            stopFreq:  first.stopFreq,
-            points:    first.points,
-            sweepType: first.sweepType,
+            ranges: ranges.map((r) => ({
+                startFreq: r.startFreq,
+                stopFreq:  r.stopFreq,
+                points:    r.points,
+                sweepType: r.sweepType,
+            })),
             selectedChannels,
             jobId: newJobId,
         }, {
             onError: (err) => {
                 setJobStatus('idle');
-                toast.error(`No se pudo iniciar la medición: ${err.message}`, {
+                const message = getErrorMessage((err as AxiosError<ApiErrorResponse>).response?.data);
+                toast.error(`No se pudo iniciar la medición: ${message}`, {
                     action: { label: 'Reintentar', onClick: () => handleSweepSubmit(ranges) },
                 });
             },
@@ -172,13 +196,32 @@ const TaskDetailPage = () => {
     };
 
     const handleSaveRanges = (ranges: FrequencyRange[]) => {
-        const first = ranges[0];
-        if (!first) return;
+        if (!hasDevicesAssigned) {
+            toast.error('Esta tarea no tiene un analizador y un MUX asignados. Asígnalos antes de guardar un preset.');
+            return;
+        }
+        const rangeError = validateRanges(ranges);
+        if (rangeError) {
+            toast.error(rangeError);
+            return;
+        }
+
         updatePreference.mutate({
-            startFreq: first.startFreq,
-            stopFreq:  first.stopFreq,
-            points:    first.points,
-            sweepType: first.sweepType,
+            ranges: ranges.map((r, i) => ({
+                order: i + 1,
+                startFreq: r.startFreq,
+                stopFreq:  r.stopFreq,
+                points:    r.points,
+                sweepType: r.sweepType,
+            })),
+        }, {
+            onSuccess: () => {
+                toast.success('Preset guardado');
+            },
+            onError: (err) => {
+                const message = getErrorMessage((err as AxiosError<ApiErrorResponse>).response?.data);
+                toast.error(`No se pudo guardar el preset: ${message}`);
+            },
         });
     };
 
@@ -228,6 +271,9 @@ const TaskDetailPage = () => {
 
     const analyzerDevice = task.activePreference?.analyzerDevice;
     const muxDevice      = task.activePreference?.muxDevice;
+    const hasDevicesAssigned = !!analyzerDevice && !!muxDevice;
+    const activePreferenceRanges = task.activePreference?.ranges ?? [];
+    const firstActiveRange = activePreferenceRanges[0];
 
     // Job activo = en cola, midiendo, o con progreso pendiente en el socket de mediciones
     const isJobActive =
@@ -276,15 +322,15 @@ const TaskDetailPage = () => {
 
                     {/* Columna izquierda — Gráfico 60% */}
                     <div className="w-[60%]">
-                        <KronosCard className="p-0 overflow-hidden">
+                        <KronosCard>
                             <MeasurementChart
                                 measurementData={
                                     measurementState.completedData && measure.data
                                         ? {
                                             id:           measure.data.measurementId,
                                             takenAt:      measure.data.takenAt,
-                                            startFreq:    measure.data.totalPoints > 0 ? (task.activePreference?.startFreq || 0) : 0,
-                                            stopFreq:     measure.data.totalPoints > 0 ? (task.activePreference?.stopFreq  || 0) : 0,
+                                            startFreq:    measure.data.totalPoints > 0 ? (firstActiveRange?.startFreq || 0) : 0,
+                                            stopFreq:     measure.data.totalPoints > 0 ? (firstActiveRange?.stopFreq  || 0) : 0,
                                             sweepType:    measure.data.sweepType,
                                             analyzerName: task.activePreference?.analyzerDevice?.name || 'Analyzer',
                                             muxName:      task.activePreference?.muxDevice?.name      || 'MUX',
@@ -337,14 +383,14 @@ const TaskDetailPage = () => {
                                 selectedChannels={selectedChannels}
                                 taskChannels={taskChannels || []}
                                 preferenceRanges={
-                                    task?.activePreference
-                                        ? [{
-                                            order: 1,
-                                            startFreq: task.activePreference.startFreq,
-                                            stopFreq:  task.activePreference.stopFreq,
-                                            points:    task.activePreference.points,
-                                            sweepType: task.activePreference.sweepType,
-                                          }]
+                                    activePreferenceRanges.length > 0
+                                        ? activePreferenceRanges.map((r) => ({
+                                            order: r.order,
+                                            startFreq: r.startFreq,
+                                            stopFreq: r.stopFreq,
+                                            points: r.points ?? 801,
+                                            sweepType: r.sweepType ?? 'LIN',
+                                          }))
                                         : undefined
                                 }
                             />

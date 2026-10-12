@@ -20,14 +20,15 @@ export interface MeasurementDetail extends MeasurementSummary {
   data: MeasurementPoint[];  // 801 puntos
 }
 
+export interface TaskPreferenceRange extends TaskPreferenceRangeInput {
+  id: number;
+}
+
 export interface TaskPreferenceResponse {
   id: number;
   taskId: number;
   name: string;
-  startFreq: number;
-  stopFreq: number;
-  points: number;
-  sweepType: string;
+  ranges: TaskPreferenceRange[];
   analyzerDevice: DeviceInfo;
   muxDevice: DeviceInfo;
 }
@@ -113,24 +114,28 @@ export interface MeasurementChannelInfo {
   humidity: number | null;
 }
 
-export interface CreateTaskPreferenceDto {
-  name: string;
-  analyzerDeviceId: string;
-  muxDeviceId: string;
+// Coincide con TaskPreferenceRangeDto del backend — el preset puede tener
+// varios rangos (sweep multi-rango), no solo uno.
+export interface TaskPreferenceRangeInput {
+  order: number;
   startFreq: number;
   stopFreq: number;
   points?: number;
   sweepType?: string;
 }
 
+export interface CreateTaskPreferenceDto {
+  name: string;
+  analyzerDeviceId: string;
+  muxDeviceId: string;
+  ranges: TaskPreferenceRangeInput[];
+}
+
 export interface UpdateTaskPreferenceDto {
   name?: string;
   analyzerDeviceId?: string;
   muxDeviceId?: string;
-  startFreq?: number;
-  stopFreq?: number;
-  points?: number;
-  sweepType?: string;
+  ranges?: TaskPreferenceRangeInput[];
 }
 
 export interface CreateDeviceDto {

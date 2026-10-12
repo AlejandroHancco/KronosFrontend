@@ -9,6 +9,8 @@ import TeamDetailPage from './pages/TeamDetailPage';
 import CalendarPage from './pages/calendar/CalendarPage';
 import DevicesPage from './pages/DevicesPage';
 import SensorsPage from './pages/SensorsPage';
+import NotificationsPage from './pages/NotificationsPage';
+import ActivityLogPage from './pages/ActivityLogPage';
 import AuthCallback from './pages/AuthCallback';
 import PrivateRoute from './components/auth/PrivateRoute';
 import PublicRoute from './components/auth/PublicRoute';
@@ -71,6 +73,8 @@ function App() {
             }>
                 <Route path="/dashboard"                                element={<DashboardPage />} />
                 <Route path="/sensors"                                  element={<SensorsPage />} />
+                <Route path="/notifications"                            element={<NotificationsPage />} />
+                <Route path="/activity"                                 element={<ActivityLogPage />} />
                 <Route path="/calendar"                                 element={<CalendarPage />} />
                 <Route path="/team/:teamId"                             element={<TeamDetailPage />} />
                 <Route path="/admin/team-requests"                      element={<TeamRequestsPage />} />

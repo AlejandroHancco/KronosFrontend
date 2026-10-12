@@ -9,6 +9,11 @@ const apiClient = axios.create({
   },
 });
 
+// Rutas públicas: no requieren token y un 401 ahí es "credenciales inválidas",
+// no "sesión expirada" — no deben disparar la redirección global.
+const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/auth/check-email'];
+const isPublicRoute = (url?: string) => PUBLIC_ROUTES.some((route) => url?.includes(route));
+
 const getAuthToken = async (): Promise<string | null> => {
   // Primero intenta JWT propio
   const localToken = localStorage.getItem('token');
@@ -24,15 +29,11 @@ const getAuthToken = async (): Promise<string | null> => {
 // Interceptor para agregar el token JWT
 apiClient.interceptors.request.use(
   async (config) => {
-    // Definimos las rutas públicas que no deben disparar la redirección ni necesitan token
-    const publicRoutes = ['/auth/login', '/auth/register', '/auth/check-email'];
-    const isPublicRoute = publicRoutes.some(route => config.url?.includes(route));
-
     const token = await getAuthToken();
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else if (!isPublicRoute) {
+    } else if (!isPublicRoute(config.url)) {
       // Solo redirigir si no hay token Y la ruta no es pública
       window.location.href = '/login';
     }
@@ -59,7 +60,15 @@ apiClient.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
 
-    if (status === 403) {
+    if (status === 401 && !isPublicRoute(error?.config?.url)) {
+      // Token inválido/expirado en una ruta protegida: no es un error de la
+      // página, es que la sesión ya no sirve. Limpiamos y mandamos a loguear.
+      localStorage.removeItem('token');
+      toastOnce('Tu sesión expiró. Vuelve a iniciar sesión.');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    } else if (status === 403) {
       toastOnce('No tienes permiso para realizar esta acción');
     } else if (status >= 500) {
       toastOnce('Error del servidor, intenta de nuevo');

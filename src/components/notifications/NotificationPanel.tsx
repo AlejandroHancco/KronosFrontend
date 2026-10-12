@@ -1,16 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import {
-  Bell,
-  UserCheck,
-  UserX,
-  Users,
-  Activity,
-  AlertTriangle,
-  Box,
-  Info,
-  Cpu,
-  type LucideIcon,
-} from 'lucide-react';
+import { Bell, Cpu } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -21,53 +10,8 @@ import {
 } from '../ui/dropdown-menu';
 import { cn } from '../../lib/utils';
 import { useNotifications } from '../../hooks/useNotifications';
-import type { AppNotification, NotificationType } from '../../types/notification.types';
-
-const typeConfig: Record<NotificationType, { icon: LucideIcon; color: string }> = {
-  TEAM_APPROVED:        { icon: UserCheck,     color: 'text-green-400' },
-  TEAM_REJECTED:        { icon: UserX,         color: 'text-red-400' },
-  TEAM_JOIN_REQUEST:    { icon: Users,         color: 'text-blue-400' },
-  MEASUREMENT_COMPLETE: { icon: Activity,      color: 'text-green-400' },
-  MEASUREMENT_WARNING:  { icon: AlertTriangle, color: 'text-yellow-400' },
-  MEASUREMENT_FAILED:   { icon: AlertTriangle, color: 'text-red-400' },
-  PROJECT_ASSIGNED:     { icon: Box,           color: 'text-blue-400' },
-  SYSTEM:               { icon: Info,          color: 'text-muted-foreground' },
-};
-
-function timeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (!Number.isFinite(seconds) || seconds < 0) return '';
-  if (seconds < 60) return 'hace un momento';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `hace ${hours} h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `hace ${days} d`;
-  return new Date(dateStr).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
-}
-
-function getActionLink(notif: AppNotification): string | null {
-  const { type, data } = notif;
-  switch (type) {
-    case 'TEAM_APPROVED':
-      return '/dashboard';
-    case 'TEAM_REJECTED':
-      return '/join-team';
-    case 'TEAM_JOIN_REQUEST':
-      return '/admin/team-requests';
-    case 'MEASUREMENT_COMPLETE':
-    case 'MEASUREMENT_FAILED':
-      if (data?.projectId && data?.taskId) {
-        return `/projects/${data.projectId}/tasks/${data.taskId}`;
-      }
-      return data?.projectId ? `/projects/${data.projectId}` : null;
-    case 'PROJECT_ASSIGNED':
-      return data?.projectId ? `/projects/${data.projectId}` : '/projects';
-    default:
-      return null;
-  }
-}
+import { typeConfig, timeAgo, getActionLink, splitMessage } from '../../lib/notification-display';
+import type { AppNotification } from '../../types/notification.types';
 
 export default function NotificationPanel() {
   const navigate = useNavigate();
@@ -131,7 +75,7 @@ export default function NotificationPanel() {
             notifications.map((notif) => {
               const config = typeConfig[notif.type] ?? typeConfig.SYSTEM;
               const Icon = config.icon;
-              const [mainLine, deviceLine] = notif.message.split('\n');
+              const [mainLine, deviceLine] = splitMessage(notif.message);
               return (
                 <button
                   key={notif.id}
@@ -165,6 +109,13 @@ export default function NotificationPanel() {
             })
           )}
         </div>
+        <DropdownMenuSeparator />
+        <button
+          onClick={() => navigate('/notifications')}
+          className="w-full px-3 py-2 text-center text-xs font-medium text-primary hover:underline"
+        >
+          Ver todas las notificaciones
+        </button>
       </DropdownMenuContent>
     </DropdownMenu>
   );

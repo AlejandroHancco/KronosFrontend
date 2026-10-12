@@ -36,13 +36,20 @@ export const useTestConnection = () => {
   });
 };
 
+export interface MeasureRangeInput {
+  startFreq: number;
+  stopFreq: number;
+  points: number;
+  sweepType: string;
+}
+
 export const useMeasure = (taskId: number) => {
   const queryClient = useQueryClient();
 
   return useMutation<
     MeasureResponse,
     Error,
-    { startFreq: number; stopFreq: number; points: number; sweepType: string; selectedChannels: number[]; jobId?: string }
+    { ranges: MeasureRangeInput[]; selectedChannels: number[]; jobId?: string }
   >({
     mutationFn: async (params) => {
       const response = await apiClient.post(`/tasks/${taskId}/measure`, params);

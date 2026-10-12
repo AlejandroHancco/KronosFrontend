@@ -405,7 +405,12 @@ const DashboardPage = () => {
             <KronosCard>
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
-                <KronosButton variant="ghost" size="sm" className="text-xs text-primary">
+                <KronosButton
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-primary"
+                  onClick={() => navigate('/activity')}
+                >
                   View All
                 </KronosButton>
               </div>

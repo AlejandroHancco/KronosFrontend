@@ -64,7 +64,7 @@ const ProjectDetailPage = () => {
 
     const { data: projectDevices } = useGetProjectDevices(id!);
     const { data: tasksData, isLoading: tasksLoading, isError: tasksError, error: tasksErrorMsg } = useGetTasks(id!, page);
-    const { data: recentData } = useGetTasks(id!, 1, 5);
+    const { data: recentData } = useGetTasks(id!, 1, 3);
     const { data: project, isLoading: projectLoading, isError: projectError, error: projectErrorMsg } = useGetProject(id!);
     const { data: allProjects } = useGetProjects();
     const { data: projectMembers = [], isLoading: projectMembersLoading } = useGetProjectMembers(id!);
@@ -104,7 +104,7 @@ const ProjectDetailPage = () => {
         );
     }
 
-    const top5Tasks = recentData?.items ?? [];
+    const recentTasks = recentData?.items ?? [];
     const paginatedTasks = tasksData?.items ?? [];
     const total = tasksData?.total ?? 0;
     const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -172,10 +172,10 @@ const ProjectDetailPage = () => {
                 {/* Left (2/3) */}
                 <div className="space-y-6 lg:col-span-2">
 
-                    {/* ── Top 5 tareas recientes ── */}
-                    <KronosSection title="Tareas Recientes" description="Las 5 últimas tareas monitorizadas">
+                    {/* ── Tareas recientes: límite de 3 + tarjeta de nueva tarea ── */}
+                    <KronosSection title="Tareas Recientes" description="Las 3 últimas tareas monitorizadas">
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                            {top5Tasks.slice(0, 3).map((task) => (
+                            {recentTasks.map((task) => (
                                 <div
                                     key={task.id}
                                     onClick={() => navigate(`/projects/${id}/tasks/${task.id}`)}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Control } from 'react-hook-form';
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
 import type { MeasureResponse, TaskChannelInfo } from '../../types/measurement.types';
@@ -49,7 +49,89 @@ const inputClass =
     'w-full px-3 py-2 rounded-md border border-border bg-muted/30 text-foreground text-sm ' +
     'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all';
 
+const unitSelectClass =
+    'shrink-0 w-[68px] px-1.5 py-2 rounded-md border border-border bg-muted/30 text-foreground text-xs ' +
+    'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all';
+
 const labelClass = 'block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider';
+
+// ── Frecuencia: el valor que viaja al backend/DB siempre es Hz (lo que ya
+// espera el schema). La unidad es puramente de presentación en el input. ──
+type FreqUnit = 'Hz' | 'kHz' | 'MHz';
+const DEFAULT_FREQ_UNIT: FreqUnit = 'kHz';
+const UNIT_FACTORS: Record<FreqUnit, number> = { Hz: 1, kHz: 1e3, MHz: 1e6 };
+
+const toHz = (hzLike: unknown): number => {
+    const n = typeof hzLike === 'number' ? hzLike : Number(hzLike);
+    return Number.isFinite(n) ? n : 0;
+};
+
+const formatInUnit = (hz: number, unit: FreqUnit): string => {
+    if (!hz) return '';
+    const value = hz / UNIT_FACTORS[unit];
+    return Number(value.toFixed(6)).toString();
+};
+
+interface FrequencyInputProps {
+    field: SimpleField;
+    unit: FreqUnit;
+    onUnitChange: (unit: FreqUnit) => void;
+}
+
+/** Input de frecuencia con selector de unidad (Hz/kHz/MHz) al costado. Siempre guarda/emite Hz. */
+const FrequencyInput = ({ field, unit, onUnitChange }: FrequencyInputProps) => {
+    const [display, setDisplay] = useState(() => formatInUnit(toHz(field.value), unit));
+    const lastEmittedHz = useRef<number | null>(null);
+    const lastUnit = useRef(unit);
+
+    useEffect(() => {
+        const hz = toHz(field.value);
+        const unitChanged = lastUnit.current !== unit;
+        lastUnit.current = unit;
+        // No pisar lo que el usuario está escribiendo: solo resincronizar el
+        // texto mostrado si el cambio vino de afuera (carga de preferencia) o
+        // si cambió la unidad seleccionada.
+        if (!unitChanged && lastEmittedHz.current === hz) return;
+        setDisplay(formatInUnit(hz, unit));
+    }, [field.value, unit]);
+
+    const handleChange = (raw: string) => {
+        setDisplay(raw);
+        const cleaned = raw.replace(/[^0-9.]/g, '');
+        if (cleaned === '' || cleaned === '.') {
+            lastEmittedHz.current = 0;
+            field.onChange(0);
+            return;
+        }
+        const num = Number(cleaned);
+        if (Number.isNaN(num)) return;
+        const hz = Math.round(num * UNIT_FACTORS[unit]);
+        lastEmittedHz.current = hz;
+        field.onChange(hz);
+    };
+
+    return (
+        <div className="flex gap-1.5">
+            <input
+                type="text"
+                inputMode="decimal"
+                className={inputClass}
+                value={display}
+                onChange={(e) => handleChange(e.target.value)}
+                onBlur={field.onBlur}
+            />
+            <select
+                value={unit}
+                onChange={(e) => onUnitChange(e.target.value as FreqUnit)}
+                className={unitSelectClass}
+            >
+                <option value="Hz">Hz</option>
+                <option value="kHz">kHz</option>
+                <option value="MHz">MHz</option>
+            </select>
+        </div>
+    );
+};
 
 const NumberInput = ({ field, min, max }: { field: SimpleField; min?: number; max?: number }) => (
     <input
@@ -91,6 +173,12 @@ const SweepConfigCard = ({
 
     // activeRangeIndex solo se modifica por interacción del usuario, nunca desde un effect
     const [activeRangeIndex, setActiveRangeIndex] = useState(0);
+
+    // Unidad de presentación por rango (start/stop independientes) — kHz por default.
+    // Puramente de UI: el form siempre guarda/envía Hz.
+    const [startUnits, setStartUnits] = useState<Record<number, FreqUnit>>({});
+    const [stopUnits, setStopUnits] = useState<Record<number, FreqUnit>>({});
+    const getUnit = (map: Record<number, FreqUnit>, idx: number) => map[idx] ?? DEFAULT_FREQ_UNIT;
 
     const { getValues, setValue } = useFormContext();
     const { fields, append, remove } = useFieldArray({ control, name: 'ranges' });
@@ -200,19 +288,31 @@ const SweepConfigCard = ({
                 {/* Inputs del rango activo */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className={labelClass}>Start Freq (Hz)</label>
+                        <label className={labelClass}>Start Freq</label>
                         <Controller
                             name={`ranges.${safeIndex}.startFreq` as const}
                             control={control}
-                            render={({ field }) => <NumberInput field={field} />}
+                            render={({ field }) => (
+                                <FrequencyInput
+                                    field={field}
+                                    unit={getUnit(startUnits, safeIndex)}
+                                    onUnitChange={(u) => setStartUnits((prev) => ({ ...prev, [safeIndex]: u }))}
+                                />
+                            )}
                         />
                     </div>
                     <div>
-                        <label className={labelClass}>Stop Freq (Hz)</label>
+                        <label className={labelClass}>Stop Freq</label>
                         <Controller
                             name={`ranges.${safeIndex}.stopFreq` as const}
                             control={control}
-                            render={({ field }) => <NumberInput field={field} />}
+                            render={({ field }) => (
+                                <FrequencyInput
+                                    field={field}
+                                    unit={getUnit(stopUnits, safeIndex)}
+                                    onUnitChange={(u) => setStopUnits((prev) => ({ ...prev, [safeIndex]: u }))}
+                                />
+                            )}
                         />
                     </div>
                 </div>

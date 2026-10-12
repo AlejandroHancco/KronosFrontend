@@ -26,13 +26,15 @@ const TaskPreferenceModal = ({ taskId, projectId, preference, onClose }: TaskPre
   const createPreference = useCreateTaskPreference(taskId);
   const updatePreference = useUpdateTaskPreference(taskId);
 
+  const firstRange = preference?.ranges?.[0];
+
   const { register, handleSubmit, reset } = useForm<FormData>({
     defaultValues: {
       name: preference?.name || '',
-      startFreq: preference?.startFreq || 1000,
-      stopFreq: preference?.stopFreq || 100000,
-      points: preference?.points || 801,
-      sweepType: preference?.sweepType || 'LOG',
+      startFreq: firstRange?.startFreq || 1000,
+      stopFreq: firstRange?.stopFreq || 100000,
+      points: firstRange?.points || 801,
+      sweepType: firstRange?.sweepType || 'LOG',
       analyzerDeviceId: preference?.analyzerDevice?.id || '',
       muxDeviceId: preference?.muxDevice?.id || '',
     },
@@ -43,12 +45,13 @@ const TaskPreferenceModal = ({ taskId, projectId, preference, onClose }: TaskPre
 
   useEffect(() => {
     if (preference) {
+      const range = preference.ranges?.[0];
       reset({
         name: preference.name,
-        startFreq: preference.startFreq,
-        stopFreq: preference.stopFreq,
-        points: preference.points,
-        sweepType: preference.sweepType,
+        startFreq: range?.startFreq ?? 1000,
+        stopFreq: range?.stopFreq ?? 100000,
+        points: range?.points ?? 801,
+        sweepType: range?.sweepType ?? 'LOG',
         analyzerDeviceId: preference.analyzerDevice.id,
         muxDeviceId: preference.muxDevice.id,
       });
@@ -56,6 +59,14 @@ const TaskPreferenceModal = ({ taskId, projectId, preference, onClose }: TaskPre
   }, [preference, reset]);
 
   const onSubmit = (data: FormData) => {
+    const ranges = [{
+      order: 1,
+      startFreq: data.startFreq,
+      stopFreq: data.stopFreq,
+      points: data.points,
+      sweepType: data.sweepType,
+    }];
+
     if (preference) {
       // Update
       updatePreference.mutate(
@@ -63,10 +74,7 @@ const TaskPreferenceModal = ({ taskId, projectId, preference, onClose }: TaskPre
           name: data.name,
           analyzerDeviceId: data.analyzerDeviceId,
           muxDeviceId: data.muxDeviceId,
-          startFreq: data.startFreq,
-          stopFreq: data.stopFreq,
-          points: data.points,
-          sweepType: data.sweepType,
+          ranges,
         },
         {
           onSuccess: onClose,
@@ -79,10 +87,7 @@ const TaskPreferenceModal = ({ taskId, projectId, preference, onClose }: TaskPre
           name: data.name,
           analyzerDeviceId: data.analyzerDeviceId,
           muxDeviceId: data.muxDeviceId,
-          startFreq: data.startFreq,
-          stopFreq: data.stopFreq,
-          points: data.points,
-          sweepType: data.sweepType,
+          ranges,
         },
         {
           onSuccess: onClose,
