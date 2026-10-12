@@ -3,7 +3,6 @@ import { Link } from "react-router-dom"
 import { useLocation } from "react-router-dom"
 import { useGetCurrentTeam } from "../../hooks/useTeams"
 import { useAuth } from "../../hooks/useAuth"
-import { useHasPermission } from "../../hooks/useHasPermission"
 import { useNotifications } from "../../hooks/useNotifications"
 import { cn } from "../../lib/utils"
 import {
@@ -18,10 +17,8 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
   type LucideIcon,
 } from "lucide-react"
-import { Button } from "../ui/button.tsx"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip.tsx"
 import { Avatar, AvatarFallback } from "../ui/avatar.tsx"
 
@@ -48,7 +45,6 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
   const { data: currentTeam } = useGetCurrentTeam()
   const { user } = useAuth()
-  const canEditPermissions = useHasPermission('permission:edit')
   const { unreadCount } = useNotifications()
 
   const handleToggle = () => {
@@ -67,15 +63,11 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
     { title: "Help", href: "/help", icon: HelpCircle },
   ]
 
-  if (canEditPermissions) {
-    systemItems.unshift({ title: "Permisos", href: "/admin/permissions", icon: ShieldCheck })
-  }
-
   const navigationGroups: NavGroup[] = [
     {
       items: [
         { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { title: "Sensors", href: "/sensors", icon: Activity },
+        { title: "Devices", href: "/sensors", icon: Activity },
         { title: "Calendar", href: "/calendar", icon: Calendar },
         { title: "Projects", href: "/projects", icon: Box },
         { title: "Reports", href: "/reports", icon: FileText },
@@ -118,7 +110,7 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
           "flex h-14 items-center border-b border-border px-4",
           isCollapsed ? "justify-center" : "gap-3"
         )}>
-          <div className="flex size-8 items-center justify-center rounded-md bg-primary">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary">
             <span className="text-sm font-bold text-primary-foreground">K</span>
           </div>
           {!isCollapsed && (
@@ -229,6 +221,27 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
            ))}
          </nav>
 
+        {/* Collapse Toggle */}
+        <div className="border-t border-border p-3">
+          <button
+            type="button"
+            onClick={handleToggle}
+            className={cn(
+              "flex w-full items-center rounded-md py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+              isCollapsed ? "justify-center" : "gap-2 px-1"
+            )}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="size-4" />
+            ) : (
+              <>
+                <ChevronLeft className="size-4" />
+                <span>Collapse</span>
+              </>
+            )}
+          </button>
+        </div>
+
         {/* User Info */}
         {user && (
           <div className={cn(
@@ -253,27 +266,6 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
           </div>
         )}
 
-        {/* Collapse Toggle */}
-        <div className="border-t border-border p-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggle}
-            className={cn(
-              "w-full text-muted-foreground hover:text-foreground",
-              isCollapsed && "justify-center px-2"
-            )}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="size-4" />
-            ) : (
-              <>
-                <ChevronLeft className="size-4" />
-                <span className="ml-2">Collapse</span>
-              </>
-            )}
-          </Button>
-        </div>
       </aside>
     </TooltipProvider>
   )

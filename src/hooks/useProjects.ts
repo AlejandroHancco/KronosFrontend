@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { getProjects, getProject, createProject, getProjectMembers, updateProjectMemberRole, addProjectMember } from '../api/projects.api';
+import { getProjects, getProject, createProject, getProjectMembers, updateProjectMemberRole, addProjectMember, updateProjectMemberPermissions } from '../api/projects.api';
 import type { Project, CreateProjectDto, ProjectMember } from '../types';
 import apiClient from '../api/client';
 
@@ -71,6 +71,17 @@ export const useAddProjectMember = () => {
   return useMutation({
     mutationFn: ({ projectId, userId, roleId }: { projectId: string; userId: string; roleId: number }) =>
       addProjectMember(projectId, userId, roleId),
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
+    },
+  });
+};
+
+export const useUpdateProjectMemberPermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, userId, permissions }: { projectId: string; userId: string; permissions: string[] }) =>
+      updateProjectMemberPermissions(projectId, userId, permissions),
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
     },

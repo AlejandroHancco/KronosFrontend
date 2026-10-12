@@ -56,6 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastName: meData.lastName,
           role: meData.role,
           permissions: meData.permissions || [],
+          roleNames: meData.roleNames || [],
           provider: 'jwt',
         });
       } catch (err) {
@@ -150,6 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         lastName: userData.lastName,
         role: userData.role,
         permissions: userData.permissions || [],
+        roleNames: userData.roleNames || [],
         provider: 'jwt',
       });
       return true;
@@ -204,10 +206,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         lastName: userData.lastName,
         role: userData.role,
         permissions: userData.permissions || [],
+        roleNames: userData.roleNames || [],
         provider: 'jwt',
       });
       setLoading(false);
-      
+
       return true;
     } catch (err) {
       const axiosError = err as AxiosError<ApiErrorResponse>;

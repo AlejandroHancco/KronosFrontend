@@ -36,3 +36,11 @@ export const addProjectMember = async (
 ): Promise<void> => {
   await apiClient.post(`/projects/${projectId}/members`, { userId, roleId });
 };
+
+export const updateProjectMemberPermissions = async (
+  projectId: string,
+  userId: string,
+  permissions: string[]
+): Promise<void> => {
+  await apiClient.patch(`/projects/${projectId}/members/${userId}/permissions`, { permissions });
+};

@@ -17,3 +17,20 @@ export const useDashboardStats = () => {
     retry: 1,
   });
 };
+
+export interface RecentActivityItem {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  createdAt: string;
+}
+
+export const useRecentActivity = () => {
+  return useQuery<RecentActivityItem[]>({
+    queryKey: ['dashboard-recent-activity'],
+    queryFn: () => apiClient.get('/dashboard/recent-activity').then((r) => r.data),
+    refetchInterval: 60000,
+    retry: 1,
+  });
+};

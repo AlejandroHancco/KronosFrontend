@@ -28,12 +28,12 @@ const StepRegister: React.FC<StepRegisterProps> = ({ email, onBack }) => {
     setValidationError(null);
 
     if (password.length < 8) {
-      setValidationError('La contraseÃ±a debe tener al menos 8 caracteres');
+      setValidationError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
 
     if (password !== confirmPassword) {
-      setValidationError('Las contraseÃ±as no coinciden');
+      setValidationError('Las contraseñas no coinciden');
       return;
     }
 
@@ -81,13 +81,13 @@ const StepRegister: React.FC<StepRegisterProps> = ({ email, onBack }) => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">ContraseÃ±a</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contraseña</label>
           <KronosInput
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+            placeholder="••••••••"
             disabled={loading}
             leftIcon={<Lock className="text-muted-foreground" size={16} />}
           />
@@ -95,20 +95,20 @@ const StepRegister: React.FC<StepRegisterProps> = ({ email, onBack }) => {
              <div className="flex items-center gap-1.5 mt-1">
                 <div className={`h-1 flex-1 rounded-full ${isPasswordValid ? 'bg-green-500' : 'bg-muted'}`} />
                 <span className={`text-[10px] ${isPasswordValid ? 'text-green-500' : 'text-muted-foreground'}`}>
-                  MÃ­nimo 8 caracteres
+                  Mínimo 8 caracteres
                 </span>
              </div>
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Confirmar contraseÃ±a</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Confirmar contraseña</label>
           <KronosInput
             type="password"
             required
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+            placeholder="••••••••"
             disabled={loading}
             leftIcon={<Lock className="text-muted-foreground" size={16} />}
           />
@@ -116,7 +116,7 @@ const StepRegister: React.FC<StepRegisterProps> = ({ email, onBack }) => {
              <div className="flex items-center gap-1.5 mt-1">
                 <CheckCircle2 size={12} className={doPasswordsMatch ? 'text-green-500' : 'text-muted'} />
                 <span className={`text-[10px] ${doPasswordsMatch ? 'text-green-500' : 'text-muted-foreground'}`}>
-                  Las contraseÃ±as coinciden
+                  Las contraseñas coinciden
                 </span>
              </div>
           )}

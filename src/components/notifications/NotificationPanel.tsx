@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Box,
   Info,
+  Cpu,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -27,7 +28,8 @@ const typeConfig: Record<NotificationType, { icon: LucideIcon; color: string }> 
   TEAM_REJECTED:        { icon: UserX,         color: 'text-red-400' },
   TEAM_JOIN_REQUEST:    { icon: Users,         color: 'text-blue-400' },
   MEASUREMENT_COMPLETE: { icon: Activity,      color: 'text-green-400' },
-  MEASUREMENT_FAILED:   { icon: AlertTriangle, color: 'text-yellow-400' },
+  MEASUREMENT_WARNING:  { icon: AlertTriangle, color: 'text-yellow-400' },
+  MEASUREMENT_FAILED:   { icon: AlertTriangle, color: 'text-red-400' },
   PROJECT_ASSIGNED:     { icon: Box,           color: 'text-blue-400' },
   SYSTEM:               { icon: Info,          color: 'text-muted-foreground' },
 };
@@ -129,6 +131,7 @@ export default function NotificationPanel() {
             notifications.map((notif) => {
               const config = typeConfig[notif.type] ?? typeConfig.SYSTEM;
               const Icon = config.icon;
+              const [mainLine, deviceLine] = notif.message.split('\n');
               return (
                 <button
                   key={notif.id}
@@ -143,7 +146,13 @@ export default function NotificationPanel() {
                     <p className="text-sm font-medium leading-tight text-foreground">
                       {notif.title}
                     </p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{notif.message}</p>
+                    <p className="truncate text-xs text-muted-foreground">{mainLine}</p>
+                    {deviceLine && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Cpu className="size-3 shrink-0" />
+                        <span className="truncate">{deviceLine}</span>
+                      </div>
+                    )}
                     <p className="text-[10px] text-muted-foreground/70">
                       {timeAgo(notif.createdAt)}
                     </p>

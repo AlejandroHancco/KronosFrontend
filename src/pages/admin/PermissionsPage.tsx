@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { KronosLayout, KronosPageHeader } from '../../components/kronos/kronos-layout';
 import { useGetRoles, useGetPermissions, useUpdateRolePermissions } from '../../hooks/usePermissions';
 import { useHasPermission } from '../../hooks/useHasPermission';
+import { useIsSuperAdmin } from '../../hooks/useIsSuperAdmin';
 import { Button } from '../../components/ui/button';
 import { Checkbox } from '../../components/ui/checkbox';
 import { cn } from '../../lib/utils';
@@ -21,6 +22,12 @@ const PERMISSION_GROUPS: Record<string, string[]> = {
 
 const GROUP_ORDER = Object.keys(PERMISSION_GROUPS);
 
+// Permisos de administración del propio sistema de roles: solo un Super Administrador puede otorgarlos.
+const SYSTEM_PERMISSIONS = new Set(['permission:edit', 'role:edit']);
+
+// Roles que un editor no-Super-Administrador puede modificar (coincide con la restricción del backend).
+const EDITABLE_BY_NON_SUPER_ADMIN = new Set(['Operario']);
+
 function getPermissionGroup(permId: string): string {
   for (const [group, prefixes] of Object.entries(PERMISSION_GROUPS)) {
     if (prefixes.some((p) => permId.startsWith(p))) return group;
@@ -30,7 +37,10 @@ function getPermissionGroup(permId: string): string {
 
 export default function PermissionsPage() {
   const canEdit = useHasPermission('permission:edit');
+  const isSuperAdmin = useIsSuperAdmin();
   const navigate = useNavigate();
+
+  const canEditRole = (role: Role): boolean => isSuperAdmin || EDITABLE_BY_NON_SUPER_ADMIN.has(role.name);
 
   const { data: roles = [], isLoading: rolesLoading } = useGetRoles();
   const { data: permissions = [], isLoading: permsLoading } = useGetPermissions();
@@ -57,7 +67,10 @@ export default function PermissionsPage() {
     }
   }, [canEdit, rolesLoading, navigate]);
 
-  const toggle = (roleId: number, permId: string) => {
+  const toggle = (role: Role, permId: string) => {
+    if (!canEditRole(role)) return;
+    if (!isSuperAdmin && SYSTEM_PERMISSIONS.has(permId)) return;
+    const roleId = role.id;
     setLocalPerms((prev) => {
       const current = new Set(prev[roleId] || []);
       if (current.has(permId)) current.delete(permId);
@@ -125,10 +138,14 @@ export default function PermissionsPage() {
   );
 
   return (
-    <KronosLayout title="Gestión de Permisos" subtitle="Super Administrador">
+    <KronosLayout title="Gestión de Permisos" subtitle={isSuperAdmin ? 'Super Administrador' : 'Gestión de Operario'}>
       <KronosPageHeader
         title="Permisos y Roles"
-        description="Define qué puede hacer cada rol en el sistema. Los cambios no guardados se resaltan en amarillo."
+        description={
+          isSuperAdmin
+            ? 'Define qué puede hacer cada rol en el sistema. Los cambios no guardados se resaltan en amarillo.'
+            : 'Puedes ver todos los roles, pero solo editar los permisos del rol Operario. Los cambios no guardados se resaltan en amarillo.'
+        }
       />
 
       {permissions.length === 0 ? (
@@ -147,15 +164,19 @@ export default function PermissionsPage() {
                   <th key={role.id} className="min-w-[140px] px-4 py-3 text-center font-medium text-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <span className="text-xs uppercase tracking-wide">{role.name}</span>
-                      <Button
-                        size="sm"
-                        variant={hasChanges(role.id) ? 'default' : 'outline'}
-                        disabled={!hasChanges(role.id) || saving === role.id}
-                        onClick={() => handleSave(role.id)}
-                        className="h-6 px-3 text-[10px]"
-                      >
-                        {saving === role.id ? 'Guardando...' : 'Guardar cambios'}
-                      </Button>
+                      {canEditRole(role) ? (
+                        <Button
+                          size="sm"
+                          variant={hasChanges(role.id) ? 'default' : 'outline'}
+                          disabled={!hasChanges(role.id) || saving === role.id}
+                          onClick={() => handleSave(role.id)}
+                          className="h-6 px-3 text-[10px]"
+                        >
+                          {saving === role.id ? 'Guardando...' : 'Guardar cambios'}
+                        </Button>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">Solo lectura</span>
+                      )}
                       {saveResult?.roleId === role.id && (
                         <span
                           className={cn(
@@ -200,6 +221,7 @@ export default function PermissionsPage() {
                       {roles.map((role: Role) => {
                         const isChecked = localPerms[role.id]?.has(perm.id) ?? false;
                         const pending = isPending(role.id, perm.id);
+                        const editable = canEditRole(role) && (isSuperAdmin || !SYSTEM_PERMISSIONS.has(perm.id));
                         return (
                           <td
                             key={role.id}
@@ -210,7 +232,8 @@ export default function PermissionsPage() {
                           >
                             <Checkbox
                               checked={isChecked}
-                              onCheckedChange={() => toggle(role.id, perm.id)}
+                              disabled={!editable}
+                              onCheckedChange={() => toggle(role, perm.id)}
                               className={cn(
                                 pending && 'border-yellow-400 data-[state=checked]:border-yellow-400 data-[state=checked]:bg-yellow-500/80'
                               )}

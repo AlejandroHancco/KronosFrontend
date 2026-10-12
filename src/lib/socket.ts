@@ -1,9 +1,9 @@
 import { io } from 'socket.io-client';
 
-// Socket singleton global (namespace raíz) para notificaciones,
+// Socket singleton global (namespace /kronos, el de KronosGateway) para notificaciones,
 // eventos de equipo y estado de jobs. El socket de mediciones
 // (namespace /measurements) vive aparte en useWebSocket.
-export const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+export const socket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/kronos`, {
   autoConnect: false,
   transports: ['websocket', 'polling'],
   reconnection: true,

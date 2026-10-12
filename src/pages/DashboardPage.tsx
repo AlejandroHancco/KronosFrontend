@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import CreateProjectModal from './modals/CreateProjectModal';
 import { useGetProjects, useGetProjectsCountByRole} from '../hooks/useProjects';
 import { useLastMeasurement } from '../hooks/useMeasurement';
@@ -17,7 +17,6 @@ import {
 } from '../components/kronos';
 import {
   Activity,
-  ChevronLeft,
   ChevronRight,
   Box,
   Download,
@@ -29,9 +28,12 @@ import {
   Clock,
   MapPin,
   Radio,
+  Cpu,
 } from 'lucide-react';
 import {useGetAllDevices} from "../hooks/useDevices.ts";
-import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useDashboardStats, useRecentActivity } from '../hooks/useDashboardStats';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 
 const sensors = [
@@ -103,43 +105,26 @@ const sensors = [
   },
 ];
 
-const recentActivity = [
-  { id: 1, type: 'alert', message: 'Humidity threshold exceeded on SN-0087', time: '5 min ago', severity: 'warning' },
-  { id: 2, type: 'offline', message: 'Sensor SN-0156 went offline', time: '12 min ago', severity: 'error' },
-  { id: 3, type: 'update', message: 'System firmware updated to v2.4.1', time: '1 hour ago', severity: 'info' },
-  { id: 4, type: 'calibration', message: 'Auto-calibration completed for 12 sensors', time: '2 hours ago', severity: 'success' },
-  { id: 5, type: 'report', message: 'Weekly analysis report generated', time: '3 hours ago', severity: 'info' },
-];
-
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<'all' | number>('all');
-  const carouselRef = useRef<HTMLDivElement>(null);
   const { data: devices } = useGetAllDevices();
 
-  const totalDevices  = devices?.length ?? 0;
-  const scrollCarousel = (direction: 'left' | 'right') => {
-    if (!carouselRef.current) return;
-    carouselRef.current.scrollBy({
-      left: direction === 'left' ? -280 : 280,
-      behavior: 'smooth',
-    });
-  };
+  const totalDeviceCount = devices?.length ?? 0;
+  const onlineDeviceCount = devices?.filter((d) => d.status === 'online').length ?? 0;
+  const uncheckedDeviceCount = devices?.filter((d) => d.status === 'unchecked').length ?? 0;
+  const offlineDeviceCount = devices?.filter((d) => d.status === 'offline').length ?? 0;
+  const archivedDeviceCount = devices?.filter((d) => d.status === 'archived').length ?? 0;
+  const pct = (count: number) => (totalDeviceCount > 0 ? (count / totalDeviceCount) * 100 : 0);
 
-  const updateArrows = () => {
-    const el = carouselRef.current;
-    if (!el) return;
-    setShowLeftArrow(el.scrollLeft > 0);
-    setShowRightArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  };
+  const totalDevices  = devices?.length ?? 0;
 
   const { data: projects, isLoading, isError, error } = useGetProjects();
   const { data: adminCount = 0 } = useGetProjectsCountByRole('admin');
   const { data: lastMeasurement, isLoading: lastMeasurementLoading } = useLastMeasurement();
   const { data: stats } = useDashboardStats();
+  const { data: recentActivity = [], isLoading: recentActivityLoading } = useRecentActivity();
 
   const activeChannels = useMemo(() => {
     if (!lastMeasurement?.data) return [];
@@ -155,18 +140,6 @@ const DashboardPage = () => {
   const visibleChannels = selectedChannel === 'all'
     ? Array.from({ length: 16 }, (_, i) => i + 1)
     : [selectedChannel as number];
-
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-
-    updateArrows();
-
-    const observer = new ResizeObserver(() => updateArrows());
-    observer.observe(el);
-
-    return () => observer.disconnect();
-  }, [projects]);
 
   if (isLoading) return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -255,32 +228,12 @@ const DashboardPage = () => {
             </KronosButton>
           }
         >
-          <div className="relative">
-
-            {/* Flecha izquierda — solo si hay scroll hacia la izquierda */}
-            <div className={`absolute -left-3 top-1/2 -translate-y-1/2 z-10 transition-all duration-200 ${
-                showLeftArrow ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-            }`}>
-              <button
-                  onClick={() => scrollCarousel('left')}
-                  className="flex size-7 items-center justify-center rounded-full border border-border bg-background shadow-md text-muted-foreground hover:text-foreground hover:border-primary transition-all duration-200"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-            </div>
-
-            {/* Track */}
-            <div
-                ref={carouselRef}
-                onScroll={updateArrows}
-                className="flex gap-4 overflow-x-auto scroll-smooth px-1 py-1"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {projects?.map((project) => (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {projects?.slice(0, 3).map((project) => (
                   <div
                       key={project.uuid}
                       onClick={() => navigate(`/projects/${project.uuid}`)}
-                      className="cursor-pointer flex-none w-[260px]"
+                      className="cursor-pointer"
                   >
                     <KronosCard className="hover:border-primary transition-colors min-h-[100px] h-full">
                       <h2 className="text-sm font-semibold text-foreground">{project.name}</h2>
@@ -292,7 +245,7 @@ const DashboardPage = () => {
               {/* Card: Crear proyecto nuevo */}
               <div
                   onClick={() => setShowCreateModal(true)}
-                  className="cursor-pointer group flex-none w-[260px]"
+                  className="cursor-pointer group"
               >
                 <KronosCard className="border-dashed border-muted-foreground/30 hover:border-primary/60 hover:bg-primary/5 transition-all duration-300 ease-in-out flex flex-col items-center justify-center gap-2 min-h-[100px] h-full">
                   <span className="text-2xl text-muted-foreground/40 group-hover:text-primary group-hover:scale-110 transition-all duration-300 ease-in-out select-none">+</span>
@@ -301,19 +254,6 @@ const DashboardPage = () => {
                   </p>
                 </KronosCard>
               </div>
-            </div>
-
-            {/* Flecha derecha — solo si hay scroll hacia la derecha */}
-            <div className={`absolute -right-3 top-1/2 -translate-y-1/2 z-10 transition-all duration-200 ${
-                showRightArrow ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-            }`}>
-              <button
-                  onClick={() => scrollCarousel('right')}
-                  className="flex size-7 items-center justify-center rounded-full border border-border bg-background shadow-md text-muted-foreground hover:text-foreground hover:border-primary transition-all duration-200"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-            </div>
           </div>
         </KronosSection>
 
@@ -470,22 +410,38 @@ const DashboardPage = () => {
                 </KronosButton>
               </div>
               <div className="space-y-3">
-                {recentActivity.map((item) => (
+                {recentActivityLoading && (
+                    <p className="text-xs text-muted-foreground">Cargando...</p>
+                )}
+                {!recentActivityLoading && recentActivity.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Sin actividad reciente.</p>
+                )}
+                {recentActivity.map((item) => {
+                  const [mainLine, deviceLine] = item.message.split('\n');
+                  return (
                     <div key={item.id} className="flex items-start gap-3">
                       <div
                           className={`mt-1 size-2 shrink-0 rounded-full ${
-                              item.severity === 'error' ? 'bg-red-500'
-                                  : item.severity === 'warning' ? 'bg-yellow-500'
-                                      : item.severity === 'success' ? 'bg-green-500'
-                                          : 'bg-blue-500'
+                              item.type === 'MEASUREMENT_FAILED' ? 'bg-red-500'
+                                  : item.type === 'MEASUREMENT_WARNING' ? 'bg-yellow-500'
+                                      : 'bg-green-500'
                           }`}
                       />
                       <div className="flex-1 space-y-0.5">
-                        <p className="text-xs text-foreground">{item.message}</p>
-                        <p className="text-[10px] text-muted-foreground">{item.time}</p>
+                        <p className="text-xs text-foreground">{mainLine}</p>
+                        {deviceLine && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Cpu className="size-3 shrink-0" />
+                              <span className="truncate">{deviceLine}</span>
+                            </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: es })}
+                        </p>
                       </div>
                     </div>
-                ))}
+                  );
+                })}
               </div>
             </KronosCard>
 
@@ -494,26 +450,27 @@ const DashboardPage = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <KronosBadge variant="success" dot size="sm">Online</KronosBadge>
-                  <span className="text-sm font-semibold text-foreground">148</span>
+                  <span className="text-sm font-semibold text-foreground">{onlineDeviceCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <KronosBadge variant="warning" dot size="sm">Warning</KronosBadge>
-                  <span className="text-sm font-semibold text-foreground">5</span>
+                  <KronosBadge variant="warning" dot size="sm">Unchecked</KronosBadge>
+                  <span className="text-sm font-semibold text-foreground">{uncheckedDeviceCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <KronosBadge variant="danger" dot size="sm">Offline</KronosBadge>
-                  <span className="text-sm font-semibold text-foreground">3</span>
+                  <span className="text-sm font-semibold text-foreground">{offlineDeviceCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <KronosBadge variant="info" dot size="sm">Maintenance</KronosBadge>
-                  <span className="text-sm font-semibold text-foreground">0</span>
+                  <KronosBadge variant="default" dot size="sm">Archived</KronosBadge>
+                  <span className="text-sm font-semibold text-foreground">{archivedDeviceCount}</span>
                 </div>
               </div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
                 <div className="flex h-full">
-                  <div className="bg-green-500" style={{ width: '94.8%' }} />
-                  <div className="bg-yellow-500" style={{ width: '3.2%' }} />
-                  <div className="bg-red-500" style={{ width: '2%' }} />
+                  <div className="bg-green-500" style={{ width: `${pct(onlineDeviceCount)}%` }} />
+                  <div className="bg-yellow-500" style={{ width: `${pct(uncheckedDeviceCount)}%` }} />
+                  <div className="bg-red-500" style={{ width: `${pct(offlineDeviceCount)}%` }} />
+                  <div className="bg-muted-foreground" style={{ width: `${pct(archivedDeviceCount)}%` }} />
                 </div>
               </div>
             </KronosCard>

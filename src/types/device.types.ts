@@ -1,4 +1,4 @@
-export type DeviceStatus = 'online' | 'offline' | 'unchecked' ;
+export type DeviceStatus = 'online' | 'offline' | 'unchecked' | 'archived';
 
 export interface Device {
     id: string;

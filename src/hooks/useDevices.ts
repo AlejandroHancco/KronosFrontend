@@ -65,6 +65,20 @@ export const useDeleteDevice = (projectId: string) => {
   });
 };
 
+export const useUpdateDeviceStatus = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation<DeviceResponse, Error, { id: string; status: 'archived' | 'unchecked' }>({
+    mutationFn: async ({ id, status }) => {
+      const response = await apiClient.patch(`/projects/${projectId}/devices/${id}/status`, { status });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
+  });
+};
+
 export const useTestDeviceConnection = () => {
   return useMutation<TestConnectionResponse, Error, { type: 'analyzer' | 'mux'; ip: string; port?: number }>({
     mutationFn: async (data) => {

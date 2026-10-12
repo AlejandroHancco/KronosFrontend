@@ -13,12 +13,19 @@ export const useSocket = () => {
     if (!user) return;
 
     consumers += 1;
+
+    const joinPersonalRoom = () => socket.emit('join', user.id);
+    socket.on('connect', joinPersonalRoom);
+
     if (!socket.connected) {
       refreshSocketAuth();
       socket.connect();
+    } else {
+      joinPersonalRoom();
     }
 
     return () => {
+      socket.off('connect', joinPersonalRoom);
       consumers -= 1;
       if (consumers <= 0) {
         socket.disconnect();

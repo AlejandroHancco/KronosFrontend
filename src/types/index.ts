@@ -57,6 +57,7 @@ export interface ProjectMember {
   userId: string;
   roleId: number;
   roleName?: string;
+  extraPermissions?: string[];
   user: {
     name: string;
     email: string;

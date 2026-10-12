@@ -1,10 +1,12 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { AxiosError } from 'axios';
 import { useGetTasks } from '../hooks/useTasks';
 import { useGetProject, useGetProjects, useGetProjectMembers, useUpdateProjectMemberRole, useAddProjectMember } from '../hooks/useProjects';
 import { useGetCurrentTeam, useGetTeamMembers } from '../hooks/useTeams';
+import { useIsSuperAdmin } from '../hooks/useIsSuperAdmin';
 import CreateTaskModal from './modals/CreateTaskModal';
+import MemberExtraPermissionsModal from './modals/MemberExtraPermissionsModal';
 import { useGetProjectDevices } from '../hooks/useTasks';
 
 import {
@@ -15,7 +17,7 @@ import {
     KronosBadge,
     KronosSection,
 } from '../components/kronos';
-import { ArrowLeft, Plus, Cpu, FolderOpen, Calendar, ChevronRight, ChevronLeft, Layers, Users } from 'lucide-react';
+import { ArrowLeft, Plus, Cpu, FolderOpen, Calendar, ChevronRight, ChevronLeft, Layers, Users, ShieldCheck } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -57,9 +59,8 @@ const ProjectDetailPage = () => {
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [addMemberUserId, setAddMemberUserId] = useState('');
     const [addMemberRoleId, setAddMemberRoleId] = useState<number>(4);
-    const taskCarouselRef = useRef<HTMLDivElement>(null);
-    const [showTaskLeftArrow, setShowTaskLeftArrow] = useState(false);
-    const [showTaskRightArrow, setShowTaskRightArrow] = useState(false);
+    const [permissionsMember, setPermissionsMember] = useState<ProjectMember | null>(null);
+    const isSuperAdmin = useIsSuperAdmin();
 
     const { data: projectDevices } = useGetProjectDevices(id!);
     const { data: tasksData, isLoading: tasksLoading, isError: tasksError, error: tasksErrorMsg } = useGetTasks(id!, page);
@@ -80,30 +81,6 @@ const ProjectDetailPage = () => {
     const membersNotInProject = approvedTeamMembers.filter(
         tm => !projectMembers.some(pm => pm.userId === tm.userId)
     );
-
-    const updateTaskArrows = () => {
-        const el = taskCarouselRef.current;
-        if (!el) return;
-        setShowTaskLeftArrow(el.scrollLeft > 0);
-        setShowTaskRightArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-    };
-
-    const scrollTaskCarousel = (direction: 'left' | 'right') => {
-        if (!taskCarouselRef.current) return;
-        taskCarouselRef.current.scrollBy({
-            left: direction === 'left' ? -280 : 280,
-            behavior: 'smooth',
-        });
-    };
-
-    useEffect(() => {
-        const el = taskCarouselRef.current;
-        if (!el) return;
-        updateTaskArrows();
-        const observer = new ResizeObserver(() => updateTaskArrows());
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, [recentData]);
 
     if (tasksLoading || projectLoading) return (
         <div className="flex h-screen items-center justify-center bg-background">
@@ -197,67 +174,38 @@ const ProjectDetailPage = () => {
 
                     {/* ── Top 5 tareas recientes ── */}
                     <KronosSection title="Tareas Recientes" description="Las 5 últimas tareas monitorizadas">
-                        <div className="relative">
-                            <div className={`absolute -left-3 top-1/2 -translate-y-1/2 z-10 transition-all duration-200 ${
-                                showTaskLeftArrow ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                            }`}>
-                                <button
-                                    onClick={() => scrollTaskCarousel('left')}
-                                    className="flex size-7 items-center justify-center rounded-full border border-border bg-background shadow-md text-muted-foreground hover:text-foreground hover:border-primary transition-all duration-200"
-                                >
-                                    <ChevronLeft className="size-4" />
-                                </button>
-                            </div>
-
-                            <div
-                                ref={taskCarouselRef}
-                                onScroll={updateTaskArrows}
-                                className="flex gap-4 overflow-x-auto scroll-smooth px-1 py-1"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                            >
-                                {top5Tasks.map((task) => (
-                                    <div
-                                        key={task.id}
-                                        onClick={() => navigate(`/projects/${id}/tasks/${task.id}`)}
-                                        className="cursor-pointer flex-none w-[260px]"
-                                    >
-                                        <KronosCard className="hover:border-primary transition-colors min-h-[100px] h-full flex flex-col justify-between gap-2">
-                                            <div>
-                                                <h2 className="text-sm font-semibold text-foreground">{task.name}</h2>
-                                                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                                    <Calendar className="size-3" />
-                                                    {formatDate(task.createdAt)}
-                                                </p>
-                                            </div>
-                                            <KronosBadge variant={statusVariant[task.status] ?? 'default'} dot size="sm">
-                                                {statusLabel[task.status] ?? task.status}
-                                            </KronosBadge>
-                                        </KronosCard>
-                                    </div>
-                                ))}
-
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                            {top5Tasks.slice(0, 3).map((task) => (
                                 <div
-                                    onClick={() => setShowCreateTaskModal(true)}
-                                    className="cursor-pointer group flex-none w-[260px]"
+                                    key={task.id}
+                                    onClick={() => navigate(`/projects/${id}/tasks/${task.id}`)}
+                                    className="cursor-pointer"
                                 >
-                                    <KronosCard className="border-dashed border-muted-foreground/30 hover:border-primary/60 hover:bg-primary/5 transition-all duration-300 ease-in-out flex flex-col items-center justify-center gap-2 min-h-[100px] h-full">
-                                        <span className="text-2xl text-muted-foreground/40 group-hover:text-primary group-hover:scale-110 transition-all duration-300 ease-in-out select-none">+</span>
-                                        <p className="text-xs font-medium text-muted-foreground/60 group-hover:text-primary transition-colors duration-300">
-                                            Nueva tarea
-                                        </p>
+                                    <KronosCard className="hover:border-primary transition-colors min-h-[100px] h-full flex flex-col justify-between gap-2">
+                                        <div>
+                                            <h2 className="text-sm font-semibold text-foreground">{task.name}</h2>
+                                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                                <Calendar className="size-3" />
+                                                {formatDate(task.createdAt)}
+                                            </p>
+                                        </div>
+                                        <KronosBadge variant={statusVariant[task.status] ?? 'default'} dot size="sm">
+                                            {statusLabel[task.status] ?? task.status}
+                                        </KronosBadge>
                                     </KronosCard>
                                 </div>
-                            </div>
+                            ))}
 
-                            <div className={`absolute -right-3 top-1/2 -translate-y-1/2 z-10 transition-all duration-200 ${
-                                showTaskRightArrow ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                            }`}>
-                                <button
-                                    onClick={() => scrollTaskCarousel('right')}
-                                    className="flex size-7 items-center justify-center rounded-full border border-border bg-background shadow-md text-muted-foreground hover:text-foreground hover:border-primary transition-all duration-200"
-                                >
-                                    <ChevronRight className="size-4" />
-                                </button>
+                            <div
+                                onClick={() => setShowCreateTaskModal(true)}
+                                className="cursor-pointer group"
+                            >
+                                <KronosCard className="border-dashed border-muted-foreground/30 hover:border-primary/60 hover:bg-primary/5 transition-all duration-300 ease-in-out flex flex-col items-center justify-center gap-2 min-h-[100px] h-full">
+                                    <span className="text-2xl text-muted-foreground/40 group-hover:text-primary group-hover:scale-110 transition-all duration-300 ease-in-out select-none">+</span>
+                                    <p className="text-xs font-medium text-muted-foreground/60 group-hover:text-primary transition-colors duration-300">
+                                        Nueva tarea
+                                    </p>
+                                </KronosCard>
                             </div>
                         </div>
                     </KronosSection>
@@ -570,16 +518,28 @@ const ProjectDetailPage = () => {
                                                 {member.user?.email ?? (member as any).email ?? ''}
                                             </p>
                                         </div>
-                                        <select
-                                            value={member.roleId}
-                                            onChange={(e) => handleChangeProjectRole(member.userId, Number(e.target.value))}
-                                            disabled={updateProjectRoleMutation.isPending}
-                                            className="shrink-0 rounded-md border border-border bg-background px-2 py-1 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-                                        >
-                                            {PROJECT_ROLES.map(role => (
-                                                <option key={role.id} value={role.id}>{role.label}</option>
-                                            ))}
-                                        </select>
+                                        <div className="flex shrink-0 items-center gap-1.5">
+                                            {(isSuperAdmin || member.roleName === 'Operario') && (
+                                                <button
+                                                    type="button"
+                                                    title="Permisos extra"
+                                                    onClick={() => setPermissionsMember(member)}
+                                                    className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                                >
+                                                    <ShieldCheck className="size-3.5" />
+                                                </button>
+                                            )}
+                                            <select
+                                                value={member.roleId}
+                                                onChange={(e) => handleChangeProjectRole(member.userId, Number(e.target.value))}
+                                                disabled={updateProjectRoleMutation.isPending}
+                                                className="rounded-md border border-border bg-background px-2 py-1 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                                            >
+                                                {PROJECT_ROLES.map(role => (
+                                                    <option key={role.id} value={role.id}>{role.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -664,6 +624,15 @@ const ProjectDetailPage = () => {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        {/* ── Modal: Permisos extra de un miembro ── */}
+        {permissionsMember && (
+            <MemberExtraPermissionsModal
+                projectId={id!}
+                member={permissionsMember}
+                onClose={() => setPermissionsMember(null)}
+            />
+        )}
         </>
     );
 };

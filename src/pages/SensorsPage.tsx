@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGetProjects } from '../hooks/useProjects';
-import { useGetAllDevices } from '../hooks/useDevices';
+import { useGetAllDevices, useUpdateDeviceStatus } from '../hooks/useDevices';
 import {
     KronosLayout,
     KronosPageHeader,
@@ -19,6 +19,8 @@ import {
     ChevronDown,
     ChevronRight,
     Network,
+    Archive,
+    ArchiveRestore,
 } from 'lucide-react';
 import type {Device, DeviceStatus,DeviceResponse} from "../types/device.types.ts";
 
@@ -37,7 +39,7 @@ interface Project {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const statusConfig: Record<DeviceStatus, {
-    variant: 'success' | 'danger' | 'warning';
+    variant: 'success' | 'danger' | 'warning' | 'default';
     label: string;
     icon: React.ElementType;
     dot: string;
@@ -45,6 +47,7 @@ const statusConfig: Record<DeviceStatus, {
     online:      { variant: 'success', label: 'Online',      icon: Wifi,          dot: 'bg-green-500' },
     offline:     { variant: 'danger',  label: 'Offline',     icon: WifiOff,       dot: 'bg-red-500'   },
     unchecked:     { variant: 'warning', label: 'Unchecked',icon: AlertTriangle, dot: 'bg-yellow-500'},
+    archived:    { variant: 'default', label: 'Archived',   icon: Archive,       dot: 'bg-muted-foreground' },
 };
 
 const typeIcon: Record<string, React.ElementType> = {
@@ -59,12 +62,17 @@ const typeLabel: Record<string, string> = {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-const DeviceCard = ({ device }: { device: Device }) => {
+const DeviceCard = ({ device, onToggleArchive, togglingArchive }: {
+    device: Device;
+    onToggleArchive: (device: Device) => void;
+    togglingArchive: boolean;
+}) => {
     const status  = statusConfig[device.status] ?? statusConfig.offline;
     const type    = (device.type ?? 'analyzer').toLowerCase();
     const Icon    = typeIcon[type]  ?? Cpu;
     const tLabel  = typeLabel[type] ?? device.type ?? '—';
     const StatusIcon = status.icon;
+    const isArchived = device.status === 'archived';
 
     return (
         <KronosCard className="flex items-center gap-4">
@@ -103,6 +111,17 @@ const DeviceCard = ({ device }: { device: Device }) => {
                     <span className="text-[10px]">{device.ip ? device.ip : '—'}</span>
                 </div>
             </div>
+
+            {/* Archivar / desarchivar */}
+            <button
+                type="button"
+                title={isArchived ? 'Desarchivar' : 'Archivar'}
+                disabled={togglingArchive}
+                onClick={() => onToggleArchive(device)}
+                className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
+            >
+                {isArchived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+            </button>
         </KronosCard>
     );
 };
@@ -117,6 +136,14 @@ const ProjectDeviceGroup = ({
     devices: DeviceResponse[];
 }) => {
     const [expanded, setExpanded] = useState(true);
+    const updateStatus = useUpdateDeviceStatus(project.uuid);
+
+    const handleToggleArchive = (device: Device) => {
+        updateStatus.mutate({
+            id: device.id,
+            status: device.status === 'archived' ? 'unchecked' : 'archived',
+        });
+    };
 
     const analyzers = devices.filter(d => d.type?.toLowerCase() === 'analyzer');
     const muxes     = devices.filter(d => d.type?.toLowerCase() === 'mux');
@@ -192,7 +219,7 @@ const ProjectDeviceGroup = ({
                                 <Cpu className="size-3" /> Analyzers
                             </p>
                             <div className="grid gap-2 sm:grid-cols-2">
-                                {analyzers.map(d => <DeviceCard key={d.id} device={d} />)}
+                                {analyzers.map(d => <DeviceCard key={d.id} device={d} onToggleArchive={handleToggleArchive} togglingArchive={updateStatus.isPending} />)}
                             </div>
                         </div>
                     )}
@@ -203,7 +230,7 @@ const ProjectDeviceGroup = ({
                                 <Layers className="size-3" /> MUX
                             </p>
                             <div className="grid gap-2 sm:grid-cols-2">
-                                {muxes.map(d => <DeviceCard key={d.id} device={d} />)}
+                                {muxes.map(d => <DeviceCard key={d.id} device={d} onToggleArchive={handleToggleArchive} togglingArchive={updateStatus.isPending} />)}
                             </div>
                         </div>
                     )}
@@ -214,7 +241,7 @@ const ProjectDeviceGroup = ({
                                 Otros
                             </p>
                             <div className="grid gap-2 sm:grid-cols-2">
-                                {others.map(d => <DeviceCard key={d.id} device={d} />)}
+                                {others.map(d => <DeviceCard key={d.id} device={d} onToggleArchive={handleToggleArchive} togglingArchive={updateStatus.isPending} />)}
                             </div>
                         </div>
                     )}
@@ -232,11 +259,19 @@ const SensorsPage = () => {
 
     const isLoading = projectsLoading || devicesLoading;
 
+    // Proyectos ordenados por cantidad de dispositivos (el que más tiene, primero)
+    const sortedProjects = [...(projects ?? [])].sort((a, b) => {
+        const countA = devices?.filter(d => d.projectId === a.uuid).length ?? 0;
+        const countB = devices?.filter(d => d.projectId === b.uuid).length ?? 0;
+        return countB - countA;
+    });
+
     // Global counts for the header stats
     const totalDevices      = devices?.length ?? 0;
     const onlineDevices     = devices?.filter(d => d.status === 'online').length     ?? 0;
     const uncheckedDevices    = devices?.filter(d => d.status === 'unchecked').length    ?? 0;
     const offlineDevices    = devices?.filter(d => d.status === 'offline').length    ?? 0;
+    const archivedDevices    = devices?.filter(d => d.status === 'archived').length    ?? 0;
 
     if (isLoading) return (
         <div className="flex h-screen items-center justify-center bg-background">
@@ -262,7 +297,7 @@ const SensorsPage = () => {
             />
 
             {/* ── Summary stats ── */}
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
 
                 <KronosCard className="flex items-center gap-3">
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
@@ -298,6 +333,14 @@ const SensorsPage = () => {
                     </div>
                 </KronosCard>
 
+                <KronosCard className="flex items-center gap-3">
+                    <Archive className="size-4 shrink-0 text-muted-foreground" />
+                    <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Archived</p>
+                        <p className="text-lg font-bold text-muted-foreground leading-none">{archivedDevices}</p>
+                    </div>
+                </KronosCard>
+
             </div>
 
             {/* ── Project groups ── */}
@@ -306,7 +349,7 @@ const SensorsPage = () => {
                 description="Dispositivos agrupados por proyecto"
             >
                 <div className="space-y-4">
-                    {projects?.map(project => (
+                    {sortedProjects.map(project => (
                         <ProjectDeviceGroup
                             key={project.uuid}
                             project={project}
