@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { KronosLayout, KronosPageHeader } from '../../components/kronos/kronos-layout';
+import { KronosLoader } from '../../components/kronos';
 import { useGetRoles, useGetPermissions, useUpdateRolePermissions } from '../../hooks/usePermissions';
 import { useHasPermission } from '../../hooks/useHasPermission';
 import { useIsSuperAdmin } from '../../hooks/useIsSuperAdmin';
@@ -114,9 +115,7 @@ export default function PermissionsPage() {
   if (rolesLoading || permsLoading) {
     return (
       <KronosLayout title="Permisos">
-        <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
-          Cargando permisos...
-        </div>
+        <KronosLoader label="Cargando permisos…" />
       </KronosLayout>
     );
   }

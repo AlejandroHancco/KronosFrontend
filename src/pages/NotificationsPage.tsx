@@ -6,6 +6,7 @@ import {
     KronosPageHeader,
     KronosCard,
     KronosButton,
+    KronosLoader,
 } from '../components/kronos';
 import { cn } from '../lib/utils';
 import { useNotifications } from '../hooks/useNotifications';
@@ -71,9 +72,7 @@ const NotificationsPage = () => {
 
             <KronosCard className="p-0">
                 {isLoading ? (
-                    <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-                        Cargando...
-                    </div>
+                    <KronosLoader />
                 ) : isError ? (
                     <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
                         No se pudieron cargar las notificaciones

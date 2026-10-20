@@ -7,6 +7,7 @@ import {
     KronosButton,
     KronosBadge,
     KronosTable,
+    KronosLoader,
     type KronosColumn,
 } from '../components/kronos';
 import { cn } from '../lib/utils';
@@ -111,9 +112,7 @@ const ActivityLogPage = () => {
 
             <KronosCard className="p-0">
                 {isLoading ? (
-                    <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-                        Cargando...
-                    </div>
+                    <KronosLoader />
                 ) : (
                     <KronosTable
                         columns={columns}

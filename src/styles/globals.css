@@ -160,3 +160,23 @@
 .fade-in {
   animation-name: fade-in;
 }
+
+/* KronosLoader: segmento que recorre la traza (dash 0.3 sobre pathLength 1) */
+@keyframes kronos-trace {
+  from { stroke-dashoffset: 0.3; }
+  to   { stroke-dashoffset: -0.7; }
+}
+@keyframes kronos-pulse {
+  50% { opacity: 0.35; }
+}
+.kronos-trace {
+  stroke-dasharray: 0.3 2;
+  animation: kronos-trace 1.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kronos-trace {
+    stroke-dasharray: none;
+    animation: kronos-pulse 2s ease-in-out infinite;
+  }
+  .kronos-trace-dot { display: none; }
+}

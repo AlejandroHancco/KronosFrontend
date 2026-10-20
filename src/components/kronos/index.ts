@@ -19,3 +19,6 @@ export { KronosTable, type KronosColumn } from "./kronos-table"
 
 // Navigation
 export { KronosTabs, KronosTabContent } from "./kronos-tabs"
+
+// Feedback
+export { KronosLoader } from "./kronos-loader"

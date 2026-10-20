@@ -16,6 +16,7 @@ import {
     KronosButton,
     KronosBadge,
     KronosSection,
+    KronosLoader,
 } from '../components/kronos';
 import { ArrowLeft, Plus, Cpu, FolderOpen, Calendar, ChevronRight, ChevronLeft, Layers, Users, ShieldCheck } from 'lucide-react';
 import {
@@ -503,7 +504,7 @@ const ProjectDetailPage = () => {
                         </div>
 
                         {projectMembersLoading ? (
-                            <p className="text-xs text-muted-foreground">Cargando...</p>
+                            <KronosLoader />
                         ) : projectMembers.length === 0 ? (
                             <p className="text-xs text-muted-foreground">No hay miembros en este proyecto.</p>
                         ) : (

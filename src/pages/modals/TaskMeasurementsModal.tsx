@@ -3,7 +3,7 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import { KronosBadge, KronosButton } from '../../components/kronos';
+import { KronosBadge, KronosButton, KronosLoader } from '../../components/kronos';
 import { fetchTaskReport } from '../../hooks/useReports';
 import { downloadFromApi, readBlobError } from '../../lib/download';
 import { getErrorMessage, type ApiErrorResponse } from '../../types/api';
@@ -34,7 +34,7 @@ const TaskMeasurementsModal = ({ taskId, taskName, onClose }: Props) => {
           <DialogTitle>Mediciones — {taskName}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[60vh] divide-y divide-border overflow-y-auto">
-          {isLoading && <p className="py-6 text-center text-sm text-muted-foreground">Cargando…</p>}
+          {isLoading && <KronosLoader />}
           {!isLoading && error && (
             <p className="py-6 text-center text-sm text-red-500">
               {getErrorMessage((error as AxiosError<ApiErrorResponse>).response?.data)}

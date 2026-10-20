@@ -14,6 +14,7 @@ import {
   KronosSensorCard,
   KronosStatCard,
   KronosBadge,
+  KronosLoader,
 } from '../components/kronos';
 import {
   Activity,
@@ -416,7 +417,7 @@ const DashboardPage = () => {
               </div>
               <div className="space-y-3">
                 {recentActivityLoading && (
-                    <p className="text-xs text-muted-foreground">Cargando...</p>
+                    <KronosLoader />
                 )}
                 {!recentActivityLoading && recentActivity.length === 0 && (
                     <p className="text-xs text-muted-foreground">Sin actividad reciente.</p>

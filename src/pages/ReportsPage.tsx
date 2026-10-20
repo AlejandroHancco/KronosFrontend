@@ -4,7 +4,7 @@ import { Download, FileText, List } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import {
-  KronosLayout, KronosPageHeader, KronosCard, KronosButton, KronosBadge, KronosTable, type KronosColumn,
+  KronosLayout, KronosPageHeader, KronosCard, KronosButton, KronosBadge, KronosTable, KronosLoader, type KronosColumn,
 } from '../components/kronos';
 import { useReportTasks } from '../hooks/useReports';
 import { useHasPermission } from '../hooks/useHasPermission';
@@ -109,7 +109,7 @@ const ReportsPage = () => {
 
       <KronosCard className="p-0">
         {isLoading ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">Cargando…</p>
+          <KronosLoader />
         ) : error ? (
           <p className="py-10 text-center text-sm text-red-500">
             {getErrorMessage((error as AxiosError<ApiErrorResponse>).response?.data)}
