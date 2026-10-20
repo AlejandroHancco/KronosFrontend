@@ -25,8 +25,11 @@ const ChangePasswordForm = () => {
     if (!canSubmit) return;
     setBusy(true);
     try {
-      await apiClient.post('/auth/change-password', { currentPassword: current, newPassword: next });
-      toast.success('Contraseña actualizada');
+      const { data } = await apiClient.post('/auth/change-password', { currentPassword: current, newPassword: next });
+      if (data?.access_token) {
+        localStorage.setItem('token', data.access_token);
+      }
+      toast.success('Contraseña actualizada. Se cerraron las demás sesiones.');
       setCurrent(''); setNext(''); setConfirm('');
     } catch (err) {
       const axiosError = err as AxiosError<ApiErrorResponse>;

@@ -93,13 +93,14 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'problemas',
     title: 'Problemas comunes',
-    keywords: 'offline desconectado sesion expirada 401 nulos error ayuda problema electrodos ip',
+    keywords: 'offline desconectado sesion expirada 401 nulos error ayuda problema electrodos ip contraseña password cambio',
     body: (
       <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
         <li><strong className="text-foreground">Dispositivo offline</strong>: el servidor revisa la conexión cada 30 s. Verifica la IP, el cable de red y que el equipo esté encendido; usa el botón "Probar Conexión" en el detalle de la tarea para confirmarlo.</li>
         <li><strong className="text-foreground">"Tu sesión expiró"</strong>: vuelve a iniciar sesión; regresarás a la página en la que estabas. Puedes extender la sesión antes desde Configuración → Sesión.</li>
         <li><strong className="text-foreground">Medición con valores nulos</strong>: revisa la conexión de los electrodos y que los canales seleccionados tengan muestra.</li>
         <li><strong className="text-foreground">No puedo medir</strong>: la tarea necesita un analizador y un MUX asignados, y tu rol debe permitir ejecutar mediciones.</li>
+        <li><strong className="text-foreground">Cambié mi contraseña y se cerró otra sesión</strong>: es esperado, por seguridad se cierran las sesiones de otros dispositivos; vuelve a iniciar sesión ahí con la nueva contraseña.</li>
       </ul>
     ),
   },
