@@ -12,6 +12,7 @@ import { downloadFromApi, readBlobError } from '../lib/download';
 import { getErrorMessage, type ApiErrorResponse } from '../types/api';
 import { WATCHER_BADGE, type ReportTaskRow, type WatcherStatus } from '../types/report.types';
 import TaskMeasurementsModal from './modals/TaskMeasurementsModal';
+import ReportOptionsModal from './modals/ReportOptionsModal';
 
 const ReportsPage = () => {
   const canView = useHasPermission('report:view');
@@ -121,8 +122,9 @@ const ReportsPage = () => {
       {listTask && (
         <TaskMeasurementsModal taskId={listTask.taskId} taskName={listTask.taskName} onClose={() => setListTask(null)} />
       )}
-      {/* pdfTask → ReportOptionsModal (Task 8) */}
-      {pdfTask && null}
+      {pdfTask && (
+        <ReportOptionsModal taskId={pdfTask.taskId} taskName={pdfTask.taskName} onClose={() => setPdfTask(null)} />
+      )}
     </KronosLayout>
   );
 };

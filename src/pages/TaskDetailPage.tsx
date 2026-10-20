@@ -22,6 +22,9 @@ import { useMeasurementSocket } from '../hooks/useMeasurementSocket';
 import { useSocket } from '../hooks/useSocket';
 import { useGetTaskChannels } from '../hooks/useChannels';
 import ChannelConfigModal from '../components/task/ChannelConfigModal';
+import ReportOptionsModal from './modals/ReportOptionsModal';
+import { useHasPermission } from '../hooks/useHasPermission';
+import { downloadFromApi, readBlobError } from '../lib/download';
 import type { TaskChannelInfo } from '../types/measurement.types';
 import { useState } from 'react';
 
@@ -33,7 +36,7 @@ import {
     KronosSection,
     KronosButton,
 } from '../components/kronos';
-import { ArrowLeft, Cpu, Layers } from 'lucide-react';
+import { ArrowLeft, Cpu, FileText, Layers } from 'lucide-react';
 
 const statusVariant: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
     completed:   'success',
@@ -63,6 +66,8 @@ const TaskDetailPage = () => {
     const [jobId, setJobId] = useState<string | null>(null);
     const [selectedChannelForConfig, setSelectedChannelForConfig] = useState<TaskChannelInfo | null>(null);
     const [jobStatus, setJobStatus] = useState<'idle' | 'queued' | 'measuring'>('idle');
+    const [showReport, setShowReport] = useState(false);
+    const canExport = useHasPermission('report:export');
     const lastRangesRef = useRef<FrequencyRange[] | null>(null);
 
     const { socket } = useWebSocket();
@@ -301,6 +306,17 @@ const TaskDetailPage = () => {
                         description={project?.name}
                         actions={
                             <>
+                                {canExport && (
+                                    <KronosButton
+                                        variant="outline"
+                                        size="sm"
+                                        leftIcon={<FileText className="size-4" />}
+                                        onClick={() => setShowReport(true)}
+                                        disabled={!measurements?.length}
+                                    >
+                                        Reporte PDF
+                                    </KronosButton>
+                                )}
                                 <KronosButton
                                     variant="outline"
                                     size="sm"
@@ -446,6 +462,10 @@ const TaskDetailPage = () => {
                         measurements={measurements || []}
                         onSelectMeasurement={setSelectedMeasurementId}
                         selectedId={effectiveSelectedId}
+                        onDownloadCsv={canExport ? async (id) => {
+                            try { await downloadFromApi(`/reports/measurement/${id}/csv`); }
+                            catch (err) { toast.error(getErrorMessage(await readBlobError(err))); }
+                        } : undefined}
                     />
                 </div>
 
@@ -456,6 +476,10 @@ const TaskDetailPage = () => {
                 channel={selectedChannelForConfig}
                 onClose={() => setSelectedChannelForConfig(null)}
             />
+
+            {showReport && (
+                <ReportOptionsModal taskId={taskIdNum} taskName={task.name} onClose={() => setShowReport(false)} />
+            )}
         </KronosLayout>
     );
 };

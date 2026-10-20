@@ -1,14 +1,15 @@
 import type { MeasurementSummary } from '../../types/measurement.types';
 import { KronosCard, KronosBadge } from '../kronos';
-import { History, Calendar, Cpu } from 'lucide-react';
+import { History, Calendar, Cpu, Download } from 'lucide-react';
 
 interface MeasurementHistoryProps {
   measurements: MeasurementSummary[];
   onSelectMeasurement: (id: number) => void;
   selectedId: number | null;
+  onDownloadCsv?: (id: number) => void;
 }
 
-const MeasurementHistory = ({ measurements, onSelectMeasurement, selectedId }: MeasurementHistoryProps) => {
+const MeasurementHistory = ({ measurements, onSelectMeasurement, selectedId, onDownloadCsv }: MeasurementHistoryProps) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('es-PE', {
       day: '2-digit',
@@ -93,11 +94,19 @@ const MeasurementHistory = ({ measurements, onSelectMeasurement, selectedId }: M
                           </p>
                         </div>
 
-                        {isSelected && (
-                            <div className="shrink-0 ml-3 mt-0.5">
-                              <div className="size-2 rounded-full bg-primary" />
-                            </div>
-                        )}
+                        <div className="shrink-0 ml-3 mt-0.5 flex items-center gap-2">
+                          {onDownloadCsv && (
+                              <button
+                                  type="button"
+                                  title="Descargar CSV"
+                                  onClick={(e) => { e.stopPropagation(); onDownloadCsv(measurement.id); }}
+                                  className="rounded p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                              >
+                                <Download className="size-3.5" />
+                              </button>
+                          )}
+                          {isSelected && <div className="size-2 rounded-full bg-primary" />}
+                        </div>
                       </div>
                   );
                 })}
