@@ -1,5 +1,11 @@
 export type WatcherStatus = 'correct' | 'warning' | 'error';
 
+export const WATCHER_BADGE: Record<WatcherStatus, { label: string; variant: 'success' | 'warning' | 'danger' }> = {
+  correct: { label: 'Correcta', variant: 'success' },
+  warning: { label: 'Advertencia', variant: 'warning' },
+  error: { label: 'Error', variant: 'danger' },
+};
+
 export interface ReportRange { from?: string; to?: string }
 
 export interface ReportTaskRow {

@@ -1,17 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { KronosBadge, KronosButton } from '../../components/kronos';
 import { fetchTaskReport } from '../../hooks/useReports';
 import { downloadFromApi, readBlobError } from '../../lib/download';
-import { getErrorMessage } from '../../types/api';
-import { WATCHER_BADGE } from '../ReportsPage';
+import { getErrorMessage, type ApiErrorResponse } from '../../types/api';
+import { WATCHER_BADGE } from '../../types/report.types';
 
 interface Props { taskId: number; taskName: string; onClose: () => void }
 
 const TaskMeasurementsModal = ({ taskId, taskName, onClose }: Props) => {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['reports', 'task', taskId, 'all'],
     queryFn: () => fetchTaskReport(taskId, {}),
   });
@@ -34,7 +35,12 @@ const TaskMeasurementsModal = ({ taskId, taskName, onClose }: Props) => {
         </DialogHeader>
         <div className="max-h-[60vh] divide-y divide-border overflow-y-auto">
           {isLoading && <p className="py-6 text-center text-sm text-muted-foreground">Cargando…</p>}
-          {!isLoading && items.length === 0 && (
+          {!isLoading && error && (
+            <p className="py-6 text-center text-sm text-red-500">
+              {getErrorMessage((error as AxiosError<ApiErrorResponse>).response?.data)}
+            </p>
+          )}
+          {!isLoading && !error && items.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">Esta tarea no tiene mediciones</p>
           )}
           {items.map((m) => {

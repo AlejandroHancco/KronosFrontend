@@ -11,11 +11,12 @@ const CsvDownloadPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: 'loading' });
-  const started = useRef(false);
+  const startedFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (started.current) return; // StrictMode monta dos veces en dev
-    started.current = true;
+    if (startedFor.current === id) return; // StrictMode monta dos veces en dev
+    startedFor.current = id ?? null;
+    setState({ kind: 'loading' });
     downloadFromApi(`/reports/measurement/${id}/csv`)
       .then((filename) => setState({ kind: 'done', filename }))
       .catch(async (err) => {

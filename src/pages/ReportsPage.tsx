@@ -2,21 +2,16 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Download, FileText, List } from 'lucide-react';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import {
   KronosLayout, KronosPageHeader, KronosCard, KronosButton, KronosBadge, KronosTable, type KronosColumn,
 } from '../components/kronos';
 import { useReportTasks } from '../hooks/useReports';
 import { useHasPermission } from '../hooks/useHasPermission';
 import { downloadFromApi, readBlobError } from '../lib/download';
-import { getErrorMessage } from '../types/api';
-import type { ReportTaskRow, WatcherStatus } from '../types/report.types';
+import { getErrorMessage, type ApiErrorResponse } from '../types/api';
+import { WATCHER_BADGE, type ReportTaskRow, type WatcherStatus } from '../types/report.types';
 import TaskMeasurementsModal from './modals/TaskMeasurementsModal';
-
-export const WATCHER_BADGE: Record<WatcherStatus, { label: string; variant: 'success' | 'warning' | 'danger' }> = {
-  correct: { label: 'Correcta', variant: 'success' },
-  warning: { label: 'Advertencia', variant: 'warning' },
-  error: { label: 'Error', variant: 'danger' },
-};
 
 const ReportsPage = () => {
   const canView = useHasPermission('report:view');
@@ -24,8 +19,8 @@ const ReportsPage = () => {
   const [projectId, setProjectId] = useState('');
   const [listTask, setListTask] = useState<ReportTaskRow | null>(null);
   const [pdfTask, setPdfTask] = useState<ReportTaskRow | null>(null);
-  const { data: allTasks } = useReportTasks();
-  const { data: tasks, isLoading } = useReportTasks(projectId || undefined);
+  const { data: allTasks } = useReportTasks(undefined, canView);
+  const { data: tasks, isLoading, error } = useReportTasks(projectId || undefined, canView);
 
   if (!canView) return <Navigate to="/403" replace />;
 
@@ -72,11 +67,11 @@ const ReportsPage = () => {
         const title = empty ? 'Esta tarea no tiene mediciones' : undefined;
         return (
           <div className="flex justify-end gap-1.5">
-            <KronosButton size="sm" variant="ghost" leftIcon={<List className="size-3.5" />} onClick={() => setListTask(row)} disabled={empty} title={title}>
-              Mediciones
-            </KronosButton>
             {canExport && (
               <>
+                <KronosButton size="sm" variant="ghost" leftIcon={<List className="size-3.5" />} onClick={() => setListTask(row)} disabled={empty} title={title}>
+                  Mediciones
+                </KronosButton>
                 <KronosButton size="sm" variant="outline" leftIcon={<Download className="size-3.5" />} onClick={() => downloadTaskCsv(row)} disabled={empty} title={title}>
                   CSV
                 </KronosButton>
@@ -114,6 +109,10 @@ const ReportsPage = () => {
       <KronosCard className="p-0">
         {isLoading ? (
           <p className="py-10 text-center text-sm text-muted-foreground">Cargando…</p>
+        ) : error ? (
+          <p className="py-10 text-center text-sm text-red-500">
+            {getErrorMessage((error as AxiosError<ApiErrorResponse>).response?.data)}
+          </p>
         ) : (
           <KronosTable columns={columns} data={tasks ?? []} emptyMessage="No hay tareas en tus proyectos" />
         )}

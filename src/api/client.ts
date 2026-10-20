@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { rememberPostLoginRedirect } from '../lib/post-login-redirect';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
@@ -66,6 +67,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('token');
       toastOnce('Tu sesión expiró. Vuelve a iniciar sesión.');
       if (window.location.pathname !== '/login') {
+        rememberPostLoginRedirect(window.location.pathname + window.location.search);
         window.location.href = '/login';
       }
     } else if (status === 403) {
