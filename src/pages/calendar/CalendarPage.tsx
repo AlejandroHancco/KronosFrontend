@@ -133,13 +133,13 @@ const CalendarPage = () => {
                     </select>
                 </div>
 
-                <KronosCard className="overflow-hidden p-0 !border-white">
+                <KronosCard className="overflow-hidden p-0 !border-white/50">
                     <div className="overflow-x-auto">
-                        <div className="min-w-[800px] max-h-[700px] overflow-y-auto">
-                            <div className="flex flex-col">
-                            {/* Header de días - Fijo arriba (sticky dentro del mismo scroll que el cuerpo,
-                                así comparte exactamente el mismo ancho y no se desalinea) */}
-                            <div className="flex border !border-white bg-muted sticky top-0 z-20">
+                        <div className="min-w-[800px] flex flex-col">
+                            {/* Header de días - fuera del scroll vertical, para que la barra empiece
+                                debajo de él. `scrollbar-gutter: stable` reserva el mismo ancho que la
+                                barra del cuerpo, así las columnas no se desalinean. */}
+                            <div className="flex border !border-white/50 bg-muted overflow-y-hidden [scrollbar-gutter:stable]">
                                 <div className="w-16 border-r border-border flex-shrink-0 bg-muted" />
                                 <div className="flex-1 grid grid-cols-7 border-r border-border">
                                     {days.map(day => (
@@ -153,10 +153,11 @@ const CalendarPage = () => {
                                 </div>
                             </div>
 
-                            {/* Cuerpo del calendario */}
+                            {/* Cuerpo del calendario (único contenedor con scroll vertical) */}
+                            <div className="max-h-[620px] overflow-y-auto [scrollbar-gutter:stable]">
                             <div className="relative flex flex-1">
                                 {/* Columna de horas */}
-                                <div className="w-16 flex-shrink-0 bg-muted border !border-white sticky left-0 z-10">
+                                <div className="w-16 flex-shrink-0 bg-muted border !border-white/50 sticky left-0 z-10">
                                     {Array.from({ length: 24 }, (_item, i) => (
                                         <div
                                             key={i}
@@ -213,14 +214,14 @@ const CalendarPage = () => {
                                     ))}
                                 </div>
                             </div>
+                            </div>
 
                             {/* Secciones por analizador (opcional/adicional si se requiere mantener el label separador) */}
                             {jobsByAnalyzer.length > 0 && (
-                                <div className="bg-muted p-2 text-[10px] font-bold border-t border-border sticky bottom-0 z-20">
+                                <div className="bg-muted p-2 text-[10px] font-bold border-t border-border">
                                     DISPOSITIVOS ACTIVOS: {jobsByAnalyzer.map(([, g]) => g.name).join(', ')}
                                 </div>
                             )}
-                            </div>
                         </div>
                     </div>
                 </KronosCard>
