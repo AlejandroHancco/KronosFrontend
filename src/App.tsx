@@ -30,6 +30,7 @@ import ForbiddenPage from './pages/errors/ForbiddenPage';
 import CsvDownloadPage from './pages/CsvDownloadPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
+import HelpPage from './pages/help/HelpPage';
 
 function App() {
     const { loading } = useAuth();
@@ -89,6 +90,7 @@ function App() {
                 <Route path="/measurements/:id/csv"                     element={<CsvDownloadPage />} />
                 <Route path="/reports"                                  element={<ReportsPage />} />
                 <Route path="/settings"                                 element={<SettingsPage />} />
+                <Route path="/help"                                     element={<HelpPage />} />
             </Route>
 
             <Route path="/404" element={<NotFoundPage />} />
