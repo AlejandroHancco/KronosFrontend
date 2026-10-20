@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom"
 import { useGetCurrentTeam } from "../../hooks/useTeams"
 import { useAuth } from "../../hooks/useAuth"
 import { useNotifications } from "../../hooks/useNotifications"
+import { useHasPermission } from "../../hooks/useHasPermission"
 import { cn } from "../../lib/utils"
 import {
   LayoutDashboard,
@@ -47,6 +48,7 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
   const { data: currentTeam } = useGetCurrentTeam()
   const { user } = useAuth()
   const { unreadCount } = useNotifications()
+  const canViewReports = useHasPermission('report:view')
 
   const handleToggle = () => {
     const newState = !isCollapsed
@@ -71,7 +73,7 @@ export function KronosSidebar({ collapsed = false, onCollapsedChange }: KronosSi
         { title: "Devices", href: "/sensors", icon: Activity },
         { title: "Calendar", href: "/calendar", icon: Calendar },
         { title: "Projects", href: "/projects", icon: Box },
-        { title: "Reports", href: "/reports", icon: FileText },
+        ...(canViewReports ? [{ title: "Reports", href: "/reports", icon: FileText }] : []),
       ],
     },
     {

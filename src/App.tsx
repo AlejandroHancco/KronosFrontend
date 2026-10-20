@@ -28,6 +28,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import NotFoundPage from './pages/errors/NotFoundPage';
 import ForbiddenPage from './pages/errors/ForbiddenPage';
 import CsvDownloadPage from './pages/CsvDownloadPage';
+import ReportsPage from './pages/ReportsPage';
 
 function App() {
     const { loading } = useAuth();
@@ -85,6 +86,7 @@ function App() {
                 <Route path="/projects/:projectId/devices"              element={<DevicesPage />} />
                 <Route path="/projects/:projectId/tasks/:taskId"        element={<TaskDetailPage />} />
                 <Route path="/measurements/:id/csv"                     element={<CsvDownloadPage />} />
+                <Route path="/reports"                                  element={<ReportsPage />} />
             </Route>
 
             <Route path="/404" element={<NotFoundPage />} />
