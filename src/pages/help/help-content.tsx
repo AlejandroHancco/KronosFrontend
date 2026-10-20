@@ -17,7 +17,7 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'primeros-pasos',
     title: 'Primeros pasos',
-    keywords: 'empezar equipo proyecto dispositivo tarea medir unirse',
+    keywords: 'empezar equipo proyecto dispositivo tarea medir unirse analizador mux ip barrido calendario',
     body: (
       <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
         <li>Únete a un equipo y espera la aprobación de un administrador.</li>
@@ -31,19 +31,19 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'mediciones',
     title: 'Mediciones',
-    keywords: 'barrido rango frecuencia hz khz mhz canales mux programar ocupado 409 calendario',
+    keywords: 'barrido rango frecuencia hz khz mhz canales mux programar cola 409 calendario conductancia susceptancia siemens',
     body: (
       <div className="space-y-2">
         <P>Un barrido mide conductancia (G) y susceptancia (B) en Siemens en cada frecuencia del rango, para cada canal seleccionado del MUX. Puedes definir varios rangos; la frecuencia inicial debe ser menor que la final.</P>
         <P>La unidad (Hz, kHz, MHz) es solo de presentación: la base de datos siempre guarda Hz. Puedes cambiar la unidad por defecto en Configuración → Preferencias.</P>
-        <P>Las mediciones programadas aparecen en el Calendario. Si un dispositivo ya está midiendo, la medición programada se pospone; una medición manual que choque con otra programada responde "dispositivo ocupado" (409).</P>
+        <P>Las mediciones programadas aparecen en el Calendario; si un dispositivo ya está midiendo, la medición programada se pospone. Una medición manual puede ser rechazada (409) si chocaría con una medición programada en los mismos dispositivos o si la cola de mediciones pendientes está llena; el mensaje de error indica el motivo y cuándo reintentar.</P>
       </div>
     ),
   },
   {
     id: 'watcher',
     title: 'Kronos Watcher',
-    keywords: 'watcher correcta advertencia error nulos cero anomalia estado',
+    keywords: 'watcher correcta advertencia error nulos cero anomalia estado lecturas conexion sensor desconectado señal',
     body: (
       <div className="space-y-2">
         <P>El Kronos Watcher revisa cada medición al terminar y la clasifica según el porcentaje de lecturas nulas (cero o casi cero) en los canales medidos:</P>
@@ -59,7 +59,7 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'reportes',
     title: 'Reportes (PDF y CSV)',
-    keywords: 'reporte pdf csv exportar descargar excel pandas columnas',
+    keywords: 'reporte pdf csv exportar descargar excel pandas columnas python notas metadatos grafico google sesion',
     body: (
       <div className="space-y-2">
         <P>En Reportes, cada tarea tiene un PDF (configuración del ensayo, resumen del Watcher, gráfico de la última medición, metadatos por canal y tabla de mediciones) y un CSV con todas sus mediciones. Exportar requiere el permiso de exportar reportes.</P>
@@ -72,9 +72,10 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'roles',
     title: 'Roles y permisos',
-    keywords: 'rol permiso administrador gestor operario visualizador acceso',
+    keywords: 'rol permiso administrador gestor operario visualizador acceso eliminar borrar',
     body: (
       <div className="space-y-2">
+        <P>Estos son los permisos por defecto de cada rol; un administrador puede cambiarlos. El Gestor de Proyecto, además de lo listado, puede eliminar proyectos, tareas y mediciones.</P>
         <table className="w-full text-sm">
           <tbody>
             {ROLES.map(([role, desc]) => (
@@ -92,10 +93,10 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'problemas',
     title: 'Problemas comunes',
-    keywords: 'offline desconectado sesion expirada 401 nulos error ayuda problema',
+    keywords: 'offline desconectado sesion expirada 401 nulos error ayuda problema electrodos ip',
     body: (
       <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-        <li><strong className="text-foreground">Dispositivo offline</strong>: el servidor revisa la conexión cada 30 s. Verifica la IP, el cable de red y que el equipo esté encendido; usa "Test de conexión" en Dispositivos.</li>
+        <li><strong className="text-foreground">Dispositivo offline</strong>: el servidor revisa la conexión cada 30 s. Verifica la IP, el cable de red y que el equipo esté encendido; usa el botón "Probar Conexión" en el detalle de la tarea para confirmarlo.</li>
         <li><strong className="text-foreground">"Tu sesión expiró"</strong>: vuelve a iniciar sesión; regresarás a la página en la que estabas. Puedes extender la sesión antes desde Configuración → Sesión.</li>
         <li><strong className="text-foreground">Medición con valores nulos</strong>: revisa la conexión de los electrodos y que los canales seleccionados tengan muestra.</li>
         <li><strong className="text-foreground">No puedo medir</strong>: la tarea necesita un analizador y un MUX asignados, y tu rol debe permitir ejecutar mediciones.</li>
@@ -105,7 +106,7 @@ export const HELP_SECTIONS: HelpSection[] = [
   {
     id: 'acerca',
     title: 'Acerca de Kronos',
-    keywords: 'acerca version ieee 1876 laas laboratorio',
+    keywords: 'acerca version ieee 1876 laas laboratorio impedancia plugin sensores actuadores',
     body: (
       <P>Kronos es una plataforma de monitoreo de concreto mediante espectroscopía de impedancia. Su capa de dispositivos sigue el modelo Lab as a Service (LaaS) del estándar IEEE 1876-2019: cada instrumento se integra como un plugin que describe sus sensores y actuadores.</P>
     ),

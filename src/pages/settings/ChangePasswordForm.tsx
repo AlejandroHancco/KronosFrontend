@@ -3,9 +3,11 @@ import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import apiClient from '../../api/client';
 import { KronosButton, KronosInput } from '../../components/kronos';
+import { useAuth } from '../../hooks/useAuth';
 import { getErrorMessage, type ApiErrorResponse } from '../../types/api';
 
 const ChangePasswordForm = () => {
+  const { user } = useAuth();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -27,7 +29,14 @@ const ChangePasswordForm = () => {
       toast.success('Contraseña actualizada');
       setCurrent(''); setNext(''); setConfirm('');
     } catch (err) {
-      toast.error(getErrorMessage((err as AxiosError<ApiErrorResponse>).response?.data));
+      const axiosError = err as AxiosError<ApiErrorResponse>;
+      if (axiosError.response?.status === 429) {
+        toast.error('Demasiados intentos, espera un minuto');
+      } else if (!axiosError.response) {
+        toast.error('No se pudo conectar con el servidor');
+      } else {
+        toast.error(getErrorMessage(axiosError.response?.data));
+      }
     } finally {
       setBusy(false);
     }
@@ -35,6 +44,7 @@ const ChangePasswordForm = () => {
 
   return (
     <form onSubmit={submit} className="max-w-sm space-y-3">
+      <input type="text" name="username" autoComplete="username" value={user?.email ?? ''} readOnly hidden />
       <KronosInput type="password" label="Contraseña actual" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
       <KronosInput type="password" label="Nueva contraseña" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
       <KronosInput type="password" label="Confirmar nueva contraseña" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />

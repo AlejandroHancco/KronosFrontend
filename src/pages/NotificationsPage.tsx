@@ -72,7 +72,7 @@ const NotificationsPage = () => {
 
             <KronosCard className="p-0">
                 {isLoading ? (
-                    <KronosLoader />
+                    <KronosLoader className="py-16" />
                 ) : isError ? (
                     <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
                         No se pudieron cargar las notificaciones

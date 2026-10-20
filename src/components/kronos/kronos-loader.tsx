@@ -1,3 +1,4 @@
+import { useId } from "react"
 import { cn } from "../../lib/utils"
 
 // Curva de barrido de impedancia estilizada: línea base, pico de resonancia de G,
@@ -13,10 +14,11 @@ interface KronosLoaderProps {
 
 export function KronosLoader({ size = "section", label, className }: KronosLoaderProps) {
   const text = label ?? (size === "page" ? "Midiendo…" : "Cargando…")
+  const rawId = useId()
+  const gridId = `kronos-grid-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`
   return (
     <div
       role="status"
-      aria-label={text}
       className={cn(
         "flex flex-col items-center justify-center gap-2",
         size === "page" ? "h-64" : "py-8",
@@ -29,13 +31,23 @@ export function KronosLoader({ size = "section", label, className }: KronosLoade
         aria-hidden="true"
       >
         <defs>
-          <pattern id="kronos-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+          <pattern id={gridId} width="10" height="10" patternUnits="userSpaceOnUse">
             <path d="M10 0H0V10" fill="none" stroke="var(--border)" strokeWidth="0.5" />
           </pattern>
         </defs>
-        <rect width="200" height="56" fill="url(#kronos-grid)" opacity="0.6" />
+        <rect width="200" height="56" fill={`url(#${gridId})`} opacity="0.6" />
         {/* traza completa, tenue */}
         <path d={TRACE} pathLength={1} fill="none" stroke="var(--primary)" strokeOpacity="0.15" strokeWidth="1.5" />
+        {/* cola del segmento brillante: más ancha y tenue, se desvanece detrás */}
+        <path
+          className="kronos-trace-tail"
+          d={TRACE}
+          pathLength={1}
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
         {/* segmento brillante que recorre la traza */}
         <path
           className="kronos-trace"

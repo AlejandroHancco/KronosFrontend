@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   KronosLayout, KronosPageHeader, KronosCard, KronosTabs, KronosTabContent,
 } from '../../components/kronos';
+import apiClient from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetCurrentTeam } from '../../hooks/useTeams';
 import { FREQ_UNITS, getPreferences, savePreferences, type FreqUnit } from '../../lib/preferences';
@@ -20,6 +22,17 @@ const SettingsPage = () => {
   const { user } = useAuth();
   const { data: team } = useGetCurrentTeam();
   const [unit, setUnit] = useState<FreqUnit>(() => getPreferences().defaultFreqUnit);
+
+  // Las sesiones de Google (Supabase) no traen roleNames del backend porque
+  // AuthContext las arma solo con los datos de Supabase. Lo pedimos aparte
+  // para no mostrar "Rol: —" a esos usuarios.
+  const hasRoleNames = !!user?.roleNames?.length;
+  const { data: me } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: async () => (await apiClient.get('/auth/me')).data as { roleNames?: string[] },
+    enabled: !hasRoleNames,
+  });
+  const roleNames = hasRoleNames ? user?.roleNames : me?.roleNames;
 
   const changeUnit = (u: FreqUnit) => {
     setUnit(savePreferences({ defaultFreqUnit: u }).defaultFreqUnit);
@@ -43,7 +56,7 @@ const SettingsPage = () => {
               <h3 className="mb-2 text-sm font-semibold text-foreground">Datos de la cuenta</h3>
               <Row k="Nombre" v={[user?.name, user?.lastName].filter(Boolean).join(' ') || '—'} />
               <Row k="Email" v={user?.email ?? '—'} />
-              <Row k="Rol" v={user?.roleNames?.join(', ') || '—'} />
+              <Row k="Rol" v={roleNames?.join(', ') || '—'} />
               <Row k="Equipo" v={team?.name ?? '—'} />
             </div>
             <div>

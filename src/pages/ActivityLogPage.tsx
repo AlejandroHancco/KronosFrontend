@@ -112,7 +112,7 @@ const ActivityLogPage = () => {
 
             <KronosCard className="p-0">
                 {isLoading ? (
-                    <KronosLoader />
+                    <KronosLoader className="py-16" />
                 ) : (
                     <KronosTable
                         columns={columns}

@@ -23,7 +23,11 @@ const SessionPanel = () => {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
+    const id = setInterval(() => {
+      setNow(Date.now());
+      // Refleja una extensión hecha desde el toast global de expiración.
+      setExpiresAt(readExpiry());
+    }, 30_000);
     return () => clearInterval(id);
   }, []);
 

@@ -115,7 +115,7 @@ export default function PermissionsPage() {
   if (rolesLoading || permsLoading) {
     return (
       <KronosLayout title="Permisos">
-        <KronosLoader label="Cargando permisos…" />
+        <KronosLoader label="Cargando permisos…" className="py-20" />
       </KronosLayout>
     );
   }

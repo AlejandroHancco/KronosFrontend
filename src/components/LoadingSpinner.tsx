@@ -1,5 +1,9 @@
 import { KronosLoader } from './kronos';
 
-const LoadingSpinner = () => <KronosLoader size="page" />;
+interface LoadingSpinnerProps {
+  label?: string;
+}
+
+const LoadingSpinner = ({ label = 'Cargando…' }: LoadingSpinnerProps) => <KronosLoader size="page" label={label} />;
 
 export default LoadingSpinner;

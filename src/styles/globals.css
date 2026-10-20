@@ -166,6 +166,12 @@
   from { stroke-dashoffset: 0.3; }
   to   { stroke-dashoffset: -0.7; }
 }
+/* Cola más ancha y tenue detrás de la cabeza, con el mismo desplazamiento
+   pero un offset inicial distinto para que se vea desvanecerse. */
+@keyframes kronos-trace-tail {
+  from { stroke-dashoffset: 0.5; }
+  to   { stroke-dashoffset: -0.5; }
+}
 @keyframes kronos-pulse {
   50% { opacity: 0.35; }
 }
@@ -173,8 +179,17 @@
   stroke-dasharray: 0.3 2;
   animation: kronos-trace 1.6s linear infinite;
 }
+.kronos-trace-tail {
+  stroke-dasharray: 0.5 2;
+  stroke-opacity: 0.35;
+  animation: kronos-trace-tail 1.6s linear infinite;
+}
 @media (prefers-reduced-motion: reduce) {
   .kronos-trace {
+    stroke-dasharray: none;
+    animation: kronos-pulse 2s ease-in-out infinite;
+  }
+  .kronos-trace-tail {
     stroke-dasharray: none;
     animation: kronos-pulse 2s ease-in-out infinite;
   }
