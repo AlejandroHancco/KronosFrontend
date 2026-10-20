@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner';
 import apiClient from '../../api/client';
+import { rememberPostLoginRedirect } from '../../lib/post-login-redirect';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -58,6 +59,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   }
 
   if (!user) {
+    rememberPostLoginRedirect(location.pathname + location.search);
     return <Navigate to="/login" replace />;
   }
 

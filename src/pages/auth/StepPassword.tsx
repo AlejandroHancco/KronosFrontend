@@ -4,6 +4,7 @@ import { KronosButton, KronosInput } from '../../components/kronos';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { consumePostLoginRedirect } from '../../lib/post-login-redirect';
 
 interface StepPasswordProps {
   email: string;
@@ -30,7 +31,7 @@ const StepPassword: React.FC<StepPasswordProps> = ({ email, onBack }) => {
     try {
       const success = await login(email, password);
       if (success) {
-        navigate('/dashboard');
+        navigate(consumePostLoginRedirect());
       }
     } catch (error: any) {
       const status = error?.response?.status;

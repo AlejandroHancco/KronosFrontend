@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { KronosLayout, KronosCard } from '../components/kronos';
+import { consumePostLoginRedirect } from '../lib/post-login-redirect';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const AuthCallback = () => {
         console.error('Error during auth callback:', error?.message || 'No session found');
         navigate('/login');
       } else {
-        navigate('/dashboard');
+        navigate(consumePostLoginRedirect());
       }
     };
 

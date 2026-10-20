@@ -3,6 +3,7 @@ import { User, Lock, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { KronosButton, KronosInput } from '../../components/kronos';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { consumePostLoginRedirect } from '../../lib/post-login-redirect';
 
 interface StepRegisterProps {
   email: string;
@@ -39,7 +40,7 @@ const StepRegister: React.FC<StepRegisterProps> = ({ email, onBack }) => {
 
     const success = await register(email, name, lastName, password);
     if (success) {
-      navigate('/dashboard');
+      navigate(consumePostLoginRedirect());
     }
   };
 
