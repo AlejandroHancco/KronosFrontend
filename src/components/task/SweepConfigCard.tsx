@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Control } from 'react-hook-form';
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
 import type { MeasureResponse, TaskChannelInfo } from '../../types/measurement.types';
+import { getPreferences, type FreqUnit } from '../../lib/preferences';
 import { KronosCard, KronosButton, KronosBadge } from '../kronos';
 import { Activity, Save, Zap, Calendar } from 'lucide-react';
 import ScheduledJobModal from './ScheduledJobModal';
@@ -57,8 +58,6 @@ const labelClass = 'block text-xs font-medium text-muted-foreground mb-1.5 upper
 
 // ── Frecuencia: el valor que viaja al backend/DB siempre es Hz (lo que ya
 // espera el schema). La unidad es puramente de presentación en el input. ──
-type FreqUnit = 'Hz' | 'kHz' | 'MHz';
-const DEFAULT_FREQ_UNIT: FreqUnit = 'kHz';
 const UNIT_FACTORS: Record<FreqUnit, number> = { Hz: 1, kHz: 1e3, MHz: 1e6 };
 
 const toHz = (hzLike: unknown): number => {
@@ -174,11 +173,12 @@ const SweepConfigCard = ({
     // activeRangeIndex solo se modifica por interacción del usuario, nunca desde un effect
     const [activeRangeIndex, setActiveRangeIndex] = useState(0);
 
-    // Unidad de presentación por rango (start/stop independientes) — kHz por default.
+    // Unidad de presentación por rango (start/stop independientes) — unidad por defecto de Preferencias (kHz si no se configuró).
     // Puramente de UI: el form siempre guarda/envía Hz.
     const [startUnits, setStartUnits] = useState<Record<number, FreqUnit>>({});
     const [stopUnits, setStopUnits] = useState<Record<number, FreqUnit>>({});
-    const getUnit = (map: Record<number, FreqUnit>, idx: number) => map[idx] ?? DEFAULT_FREQ_UNIT;
+    const [defaultUnit] = useState<FreqUnit>(() => getPreferences().defaultFreqUnit);
+    const getUnit = (map: Record<number, FreqUnit>, idx: number) => map[idx] ?? defaultUnit;
 
     const { getValues, setValue } = useFormContext();
     const { fields, append, remove } = useFieldArray({ control, name: 'ranges' });
