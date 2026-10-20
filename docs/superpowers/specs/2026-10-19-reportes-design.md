@@ -108,12 +108,12 @@ Componentes `@react-pdf/renderer`, tamaño A4, fondo blanco, textos en español,
 Nombre del archivo: `reporte_<tarea-slug>_<yyyymmdd>.pdf`.
 
 ## 3. Manejo de errores
-- Backend: 403 (sin permiso / otro equipo), 404 (tarea o medición inexistente), 400 (`from`/`to` inválidos o `from > to`).
+- Backend: 403 (falta el permiso), 404 (el recurso no existe **o** pertenece a otro equipo — deliberadamente indistinguible, para que no se puedan sondear IDs de otros equipos; consistente con `TeamScopeService`, usado en toda la app), 400 (`from`/`to` inválidos o `from > to`).
 - Frontend: toasts con el mensaje real del backend (`getErrorMessage`, patrón existente); spinner en el botón mientras se genera el PDF; si la generación falla, toast "No se pudo generar el PDF".
 
 ## 4. Pruebas
 - Backend: tests unitarios de `csv.util.ts` (escape de comillas/comas/saltos, protección de fórmulas) y del armado de filas CSV a partir de un `data` de ejemplo; `tsc --noEmit`.
-- Verificación manual: endpoints con curl (200 con permiso, 403 sin permiso, 403 con medición de otro equipo), CSV abierto en Excel (tildes y columnas correctas), PDF generado para una tarea con mediciones y para una con mediciones vacías, link CSV del PDF abriendo el login cuando no hay sesión.
+- Verificación manual: endpoints con curl (200 con permiso, 403 sin permiso, 404 con medición de otro equipo), CSV abierto en Excel (tildes y columnas correctas), PDF generado para una tarea con mediciones y para una con mediciones vacías, link CSV del PDF abriendo el login cuando no hay sesión.
 - Frontend: `tsc --noEmit` y `vite build`.
 
 ## 5. Orden de implementación
