@@ -7,6 +7,10 @@ export const formatFreq = (hz: number): string => {
 export const formatDate = (iso: string | null): string =>
   iso ? new Date(iso).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 
+/** Solo fecha (sin hora); para el filtro de rango, donde la hora no aporta y puede confundir. */
+export const formatDateOnly = (iso: string | null): string =>
+  iso ? new Date(iso).toLocaleDateString('es-PE') : '—';
+
 export const formatSci = (v: number): string => (v === 0 ? '0' : v.toExponential(1));
 
 export const slug = (text: string): string =>

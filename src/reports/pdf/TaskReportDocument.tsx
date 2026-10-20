@@ -1,7 +1,7 @@
 import { Document, Page, View, Text, Link, StyleSheet } from '@react-pdf/renderer';
 import type { TaskReportData } from '../../types/report.types';
 import MeasurementChartPdf from './MeasurementChartPdf';
-import { channelColor, formatDate, formatFreq, publicUrl, WATCHER_PDF } from './format';
+import { channelColor, formatDate, formatDateOnly, formatFreq, publicUrl, WATCHER_PDF } from './format';
 
 const s = StyleSheet.create({
   page: { padding: 40, fontSize: 9, color: '#111827', fontFamily: 'Helvetica' },
@@ -53,7 +53,7 @@ const TaskReportDocument = ({ data, generatedBy }: { data: TaskReportData; gener
         <KV k="Período" v={`${formatDate(first)} — ${formatDate(last)}`} />
         <KV k="Mediciones" v={String(ms.length)} />
         {(data.range.from || data.range.to) && (
-          <KV k="Filtro de fechas" v={`${formatDate(data.range.from)} — ${formatDate(data.range.to)}`} />
+          <KV k="Filtro de fechas" v={`${formatDateOnly(data.range.from)} — ${formatDateOnly(data.range.to)}`} />
         )}
 
         {/* 2. Configuración */}
@@ -89,7 +89,7 @@ const TaskReportDocument = ({ data, generatedBy }: { data: TaskReportData; gener
               <Text key={key} style={{ color: w.color }}>{w.label}: {counts[key]}</Text>
             ))}
           </View>
-          {[...reasons.entries()].map(([reason, n]) => (
+          {[...reasons.entries()].sort((a, b) => b[1] - a[1]).map(([reason, n]) => (
             <Text key={reason} style={[s.muted, { marginTop: 2 }]}>• {reason} ({n})</Text>
           ))}
         </View>

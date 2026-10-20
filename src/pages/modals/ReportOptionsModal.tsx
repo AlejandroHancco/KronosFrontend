@@ -24,7 +24,13 @@ const ReportOptionsModal = ({ taskId, taskName, onClose }: Props) => {
     }
     setBusy(true);
     try {
-      const data = await fetchTaskReport(taskId, { from: from || undefined, to: to || undefined });
+      // El usuario elige fechas locales (Lima, UTC-5); se convierten a límites ISO en hora
+      // local antes de enviarlas, para que el backend (que trata YYYY-MM-DD como UTC) filtre el
+      // día correcto.
+      const data = await fetchTaskReport(taskId, {
+        from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
+        to: to ? new Date(`${to}T23:59:59.999`).toISOString() : undefined,
+      });
       if (data.measurements.length === 0) {
         toast.error('No hay mediciones en ese rango de fechas');
         return;

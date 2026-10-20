@@ -9,7 +9,7 @@ export function consumePostLoginRedirect(fallback = '/dashboard'): string {
   try {
     const path = sessionStorage.getItem(KEY);
     sessionStorage.removeItem(KEY);
-    return path && path.startsWith('/') && !path.startsWith('//') ? path : fallback;
+    return path && path.startsWith('/') && !path.startsWith('//') && !path.includes('\\') ? path : fallback;
   } catch {
     return fallback;
   }

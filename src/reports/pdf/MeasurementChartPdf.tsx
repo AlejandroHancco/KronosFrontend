@@ -18,10 +18,11 @@ function extent(arr: number[]): [number, number] {
 }
 
 const MeasurementChartPdf = ({ data, channels, log, width = 515, height = 230 }: Props) => {
-  const freqs = data.map((p) => p.frequency).filter((f) => f > 0);
+  const points = data.filter((p) => p.frequency > 0);
+  const freqs = points.map((p) => p.frequency);
   if (freqs.length < 2 || channels.length === 0) return null;
 
-  const values = data.flatMap((p) => channels.flatMap((c) => [p.g[c - 1] ?? 0, p.b[c - 1] ?? 0]));
+  const values = points.flatMap((p) => channels.flatMap((c) => [p.g[c - 1] ?? 0, p.b[c - 1] ?? 0]));
   let [yMin, yMax] = extent(values);
   if (yMin === yMax) { yMin -= 1; yMax += 1; }
 
@@ -35,8 +36,7 @@ const MeasurementChartPdf = ({ data, channels, log, width = 515, height = 230 }:
   const sy = (v: number) => PAD.top + (1 - (v - yMin) / (yMax - yMin)) * plotH;
 
   const path = (key: 'g' | 'b', ch: number) =>
-    data
-      .filter((p) => p.frequency > 0)
+    points
       .map((p, i) => `${i === 0 ? 'M' : 'L'}${sx(p.frequency).toFixed(1)},${sy(p[key][ch - 1] ?? 0).toFixed(1)}`)
       .join(' ');
 
