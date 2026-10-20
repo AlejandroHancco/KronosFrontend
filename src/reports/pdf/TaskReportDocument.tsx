@@ -116,6 +116,7 @@ const TaskReportDocument = ({ data, generatedBy }: { data: TaskReportData; gener
               {['Canal', 'Alias', 'Mezcla', 'Emuls.', 'Edad (d)', 'Temp. °C', 'Hum. %'].map((h) => (
                 <Text key={h} style={[s.th, cell(1)]}>{h}</Text>
               ))}
+              <Text style={[s.th, cell(2)]}>Notas</Text>
             </View>
             {[...data.latest.channels].sort((a, b) => a.channelNumber - b.channelNumber).map((c) => (
               <View key={c.channelNumber} style={s.row}>
@@ -126,6 +127,7 @@ const TaskReportDocument = ({ data, generatedBy }: { data: TaskReportData; gener
                 <Text style={cell(1)}>{c.sampleAge ?? '—'}</Text>
                 <Text style={cell(1)}>{c.temperature ?? '—'}</Text>
                 <Text style={cell(1)}>{c.humidity ?? '—'}</Text>
+                <Text style={cell(2)}>{c.notes ?? '—'}</Text>
               </View>
             ))}
           </View>

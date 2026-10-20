@@ -6,18 +6,29 @@ interface Props { data: ReportPoint[]; channels: number[]; log: boolean; width?:
 
 const PAD = { top: 10, right: 12, bottom: 28, left: 48 };
 
+/** Min/max en una sola pasada; evita el límite de argumentos de Math.min/max(...arr) en arreglos grandes. */
+function extent(arr: number[]): [number, number] {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const v of arr) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return [min, max];
+}
+
 const MeasurementChartPdf = ({ data, channels, log, width = 515, height = 230 }: Props) => {
   const freqs = data.map((p) => p.frequency).filter((f) => f > 0);
   if (freqs.length < 2 || channels.length === 0) return null;
 
   const values = data.flatMap((p) => channels.flatMap((c) => [p.g[c - 1] ?? 0, p.b[c - 1] ?? 0]));
-  let yMin = Math.min(...values);
-  let yMax = Math.max(...values);
+  let [yMin, yMax] = extent(values);
   if (yMin === yMax) { yMin -= 1; yMax += 1; }
 
   const fx = log ? Math.log10 : (v: number) => v;
-  const xMin = fx(Math.min(...freqs));
-  const xMax = fx(Math.max(...freqs));
+  const [freqMin, freqMax] = extent(freqs);
+  const xMin = fx(freqMin);
+  const xMax = fx(freqMax);
   const plotW = width - PAD.left - PAD.right;
   const plotH = height - PAD.top - PAD.bottom;
   const sx = (f: number) => PAD.left + ((fx(f) - xMin) / (xMax - xMin || 1)) * plotW;

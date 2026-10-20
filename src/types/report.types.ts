@@ -28,6 +28,7 @@ export interface ReportChannel {
   sampleAge: number | null;
   temperature: number | null;
   humidity: number | null;
+  notes: string | null;
 }
 
 export interface ReportMeasurement {

@@ -15,8 +15,13 @@ export const slug = (text: string): string =>
 export const publicUrl = (): string =>
   (import.meta.env.VITE_PUBLIC_URL as string | undefined)?.replace(/\/$/, '') || window.location.origin;
 
-/** Paleta de canales de la app (MeasurementChart.tsx), legible sobre fondo blanco. */
-export const CHANNEL_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
+/**
+ * Pasos "light-surface" de la misma paleta categórica de 8 tonos (azul, naranja, aqua,
+ * amarillo, magenta, verde, violeta, rojo), validados con el validador de dataviz sobre
+ * #ffffff (todos los checks pasan; aqua/amarillo/magenta quedan por debajo de 3:1 de
+ * contraste, por lo que el PDF depende de la leyenda de canal para la identidad).
+ */
+export const CHANNEL_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
 export const channelColor = (ch: number) => CHANNEL_COLORS[(ch - 1) % CHANNEL_COLORS.length];
 
 export const WATCHER_PDF: Record<string, { label: string; color: string }> = {
